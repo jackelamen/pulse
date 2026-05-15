@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Archive,
   BookOpen,
@@ -54,12 +55,25 @@ const WEEKDAYS = [
 ];
 
 export function HabitsClient() {
+  const searchParams = useSearchParams();
   const habits = useHabits();
   const logs = useLast90HabitLogs();
   const allLogs = logs.data ?? [];
-  const allHabits = habits.data ?? [];
-  const dueToday = allHabits.filter((habit) => isHabitDueOn(habit, new Date()));
+  const allHabits = useMemo(() => habits.data ?? [], [habits.data]);
+  const dueToday = useMemo(
+    () => allHabits.filter((habit) => isHabitDueOn(habit, new Date())),
+    [allHabits]
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const requestedHabitId = searchParams.get("habit");
+
+  useEffect(() => {
+    if (!requestedHabitId) return;
+    if (allHabits.some((habit) => habit.id === requestedHabitId)) {
+      setSelectedId(requestedHabitId);
+    }
+  }, [allHabits, requestedHabitId]);
+
   const selectedHabit =
     allHabits.find((habit) => habit.id === selectedId) ?? dueToday[0] ?? allHabits[0] ?? null;
 

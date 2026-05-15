@@ -29,8 +29,10 @@ import { useHabits, useTodayHabitLogs, useToggleHabitLog } from "@/lib/habits/qu
 import { useLists } from "@/lib/lists/queries";
 import { isHabitDueOn } from "@/lib/habits/dates";
 import { isSameDay } from "@/lib/date";
+import { useUi } from "@/lib/ui/store";
 import type { Task } from "@/lib/tasks/types";
 import type { Habit } from "@/lib/habits/types";
+import { useRouter } from "next/navigation";
 
 export function TodayClient() {
   const today = useTodayTasks();
@@ -323,6 +325,9 @@ function TodayRail({
 }
 
 function DarkTimeline({ tasks }: { tasks: Task[] }) {
+  const openTask = useUi((s) => s.openTask);
+  const toggle = useToggleComplete();
+
   return (
     <section>
       <div className="mb-6 flex items-center gap-3">
@@ -347,12 +352,28 @@ function DarkTimeline({ tasks }: { tasks: Task[] }) {
               <div className="mb-2 text-sm font-semibold tracking-wide text-white/75">
                 {formatTaskRange(task)}
               </div>
-              <div className="rounded-2xl border border-white/12 bg-white/[0.09] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                <div className="text-base font-semibold text-white">{task.title}</div>
-                <div className="mt-1 text-sm text-white/65">
-                  {task.duration_minutes ? `${task.duration_minutes} minutes` : "No duration set"}
+              <button
+                type="button"
+                onClick={() => openTask(task.id)}
+                className="group flex w-full items-start gap-3 rounded-2xl border border-white/12 bg-white/[0.09] px-4 py-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:border-white/20 hover:bg-white/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                aria-label={`Edit ${task.title}`}
+              >
+                <Checkbox
+                  checked={!!task.completed_at}
+                  onCheckedChange={() => toggle.mutate(task)}
+                  priority={task.priority}
+                  className="mt-0.5 border-white/50 bg-transparent hover:border-white"
+                  aria-label={task.completed_at ? `Mark ${task.title} incomplete` : `Complete ${task.title}`}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-base font-semibold text-white group-hover:text-white">
+                    {task.title}
+                  </div>
+                  <div className="mt-1 text-sm text-white/65">
+                    {task.duration_minutes ? `${task.duration_minutes} minutes` : "No duration set"}
+                  </div>
                 </div>
-              </div>
+              </button>
             </li>
           ))}
         </ol>
@@ -369,6 +390,7 @@ function DarkHabitPanel({
   loggedHabitIds: Set<string>;
 }) {
   const toggle = useToggleHabitLog();
+  const router = useRouter();
 
   return (
     <section className="border-t border-white/10 pt-7">
@@ -386,27 +408,33 @@ function DarkHabitPanel({
             const done = loggedHabitIds.has(habit.id);
             const color = habit.color || "#34d399";
             return (
-              <button
+              <div
                 key={habit.id}
-                type="button"
-                onClick={() => toggle.mutate({ habitId: habit.id })}
-                disabled={toggle.isPending}
                 className="flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-4 text-left transition-colors hover:bg-white/[0.09]"
               >
-                <span
+                <button
+                  type="button"
+                  onClick={() => toggle.mutate({ habitId: habit.id })}
+                  disabled={toggle.isPending}
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2"
                   style={{
                     borderColor: color,
                     backgroundColor: done ? color : "transparent",
                   }}
+                  aria-label={done ? `Unlog ${habit.name}` : `Log ${habit.name}`}
                 >
                   {done && <Check className="h-4 w-4 text-white" />}
-                </span>
-                <span className="min-w-0 flex-1">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/habits?habit=${encodeURIComponent(habit.id)}`)}
+                  className="min-w-0 flex-1 text-left"
+                  aria-label={`Edit ${habit.name}`}
+                >
                   <span className="block truncate text-sm font-semibold text-white">{habit.name}</span>
                   <span className="block text-xs capitalize text-white/55">{habit.cadence}</span>
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>
