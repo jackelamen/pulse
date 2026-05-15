@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   const redirectUrl = appUrl(mode === "signup" ? "/login" : next, request);
 
-  const response = NextResponse.redirect(redirectUrl);
+  const response = noStoreRedirect(redirectUrl);
   const { url, anonKey, cookieDomain } = requireSupabaseEnv();
 
   const supabase = createServerClient<Database>(url, anonKey, {
@@ -61,10 +61,16 @@ function redirectWithMessage(request: NextRequest, message: string, status: "err
   const url = appUrl("/login", request);
   url.searchParams.set(status, message);
   url.searchParams.set("next", next);
-  return NextResponse.redirect(url);
+  return noStoreRedirect(url);
 }
 
 function sanitizeNext(value: string) {
   if (!value.startsWith("/") || value.startsWith("//")) return "/today";
   return value;
+}
+
+function noStoreRedirect(url: URL) {
+  const response = NextResponse.redirect(url);
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  return response;
 }

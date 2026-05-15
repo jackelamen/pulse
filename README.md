@@ -59,6 +59,7 @@ Deploy Pulse as a Node/Next.js app from the `pulse` repo root, not as static fil
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://mdkyijbgvxedelcqcouu.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<Supabase anon/publishable key>
+NEXT_PUBLIC_SITE_URL=https://lightskyblue-wolverine-166414.hostingersite.com
 NEXT_PUBLIC_COOKIE_DOMAIN=
 ```
 

@@ -16,5 +16,7 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(appUrl(next, request));
+  const response = NextResponse.redirect(appUrl(next, request));
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  return response;
 }

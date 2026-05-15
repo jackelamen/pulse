@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
 
     const url = appUrl("/deployment-error", request);
     url.searchParams.set("missing", envStatus.missing.join(","));
-    return NextResponse.redirect(url);
+    return noStoreRedirect(url);
   }
 
   const { url: supabaseUrl, anonKey, cookieDomain } = requireSupabaseEnv();
@@ -54,13 +54,19 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic) {
     const url = appUrl("/login", request);
     url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
+    return noStoreRedirect(url);
   }
 
   if (user && path === "/login") {
     const url = appUrl("/today", request);
-    return NextResponse.redirect(url);
+    return noStoreRedirect(url);
   }
 
+  return response;
+}
+
+function noStoreRedirect(url: URL) {
+  const response = NextResponse.redirect(url);
+  response.headers.set("Cache-Control", "no-store, max-age=0");
   return response;
 }
