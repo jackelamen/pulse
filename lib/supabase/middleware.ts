@@ -13,6 +13,10 @@ export async function updateSession(request: NextRequest) {
   const envStatus = getSupabaseEnvStatus();
   const isPublic = PUBLIC_PATHS.some((p) => path === p || (p !== "/" && path.startsWith(p + "/")));
 
+  if (path === "/") {
+    return response;
+  }
+
   if (!envStatus.ok) {
     if (path === "/deployment-error" || path.startsWith("/api/health")) {
       return response;
