@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
@@ -32,6 +33,40 @@ function LoginForm() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [message, setMessage] = useState<{ type: "error" | "ok"; text: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const supabase = createClient();
+      const result =
+        mode === "signin"
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
+
+      if (result.error) {
+        setMessage({ type: "error", text: result.error.message });
+        return;
+      }
+
+      if (mode === "signup" && !result.data.session) {
+        setMessage({ type: "ok", text: "Account created. Check your email to confirm it, then sign in." });
+        setMode("signin");
+        return;
+      }
+
+      window.location.assign(next);
+    } catch (error) {
+      console.error("[pulse] browser auth failed", error);
+      setMessage({ type: "error", text: "Could not sign in. Please try again." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background p-6">
@@ -49,7 +84,7 @@ function LoginForm() {
           {mode === "signin" ? "Sign in with email and password." : "Create your Pulse account."}
         </p>
 
-        <form action="/auth/password" method="post" className="mt-6 space-y-3">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
           <input type="hidden" name="mode" value={mode} />
           <input type="hidden" name="next" value={next} />
           <Input
@@ -71,8 +106,8 @@ function LoginForm() {
             minLength={6}
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
           />
-          <Button type="submit" className="w-full">
-            {mode === "signin" ? "Sign in" : "Create account"}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
 
@@ -81,6 +116,11 @@ function LoginForm() {
         )}
         {errorMessage && (
           <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
+        )}
+        {message && (
+          <p className={`mt-3 text-sm ${message.type === "ok" ? "text-emerald-600" : "text-destructive"}`}>
+            {message.text}
+          </p>
         )}
 
         <button
