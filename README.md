@@ -73,7 +73,7 @@ npm run build
 npm run start
 ```
 
-The production build uses Next's standalone server output. Hostinger should start the app with `npm run start`, which runs `node server.js`. The root `server.js` normalizes Hostinger's socket-style `HOSTNAME` value before loading Next's standalone server.
+Hostinger should use `server.js` as the entry file. It starts Next through a small custom HTTP server on port 3000, which matches Hostinger's Node.js app expectations.
 
 After deployment, open `/api/health`. A healthy deployment returns `"ok": true`. If a required env var is missing, Pulse redirects app pages to `/deployment-error` instead of failing with an opaque 500.
 

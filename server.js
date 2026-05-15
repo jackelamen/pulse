@@ -1,26 +1,29 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { spawn } = require("node:child_process");
+const http = require("node:http");
+const next = require("next");
 
 if (process.env.NODE_PORT && !process.env.PORT) {
   process.env.PORT = process.env.NODE_PORT;
 }
 
-const standaloneServer = path.join(__dirname, ".next", "standalone", "server.js");
+const port = Number(process.env.PORT || 3000);
+const hostname = "0.0.0.0";
+const app = next({ dev: false, hostname, port });
+const handle = app.getRequestHandler();
 
-console.log(
-  `[pulse] starting on port=${process.env.PORT || "3000"} hostname=${process.env.HOSTNAME || "default"} standalone=${fs.existsSync(standaloneServer)}`
-);
+console.log(`[pulse] starting custom Next server on ${hostname}:${port}`);
 
-if (fs.existsSync(standaloneServer)) {
-  require(standaloneServer);
-} else {
-  console.warn("[pulse] standalone server not found; falling back to next start");
-  const nextBin = path.join(__dirname, "node_modules", ".bin", "next");
-  const child = spawn(nextBin, ["start"], { stdio: "inherit", env: process.env });
-
-  child.on("exit", (code, signal) => {
-    if (signal) process.kill(process.pid, signal);
-    process.exit(code || 0);
+app
+  .prepare()
+  .then(() => {
+    http
+      .createServer((req, res) => {
+        handle(req, res);
+      })
+      .listen(port, hostname, () => {
+        console.log(`[pulse] ready on ${hostname}:${port}`);
+      });
+  })
+  .catch((error) => {
+    console.error("[pulse] failed to start", error);
+    process.exit(1);
   });
-}

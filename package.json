@@ -5,7 +5,7 @@
   "description": "Pulse — task manager that will become the Tasks module of TheEDGEx",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/prepare-standalone.mjs",
+    "build": "next build",
     "start": "node server.js",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
