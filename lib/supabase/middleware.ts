@@ -4,14 +4,14 @@ import { getSupabaseEnvStatus, requireSupabaseEnv } from "@/lib/env";
 import { appUrl } from "@/lib/request-origin";
 import type { Database } from "@/types/database";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/password", "/deployment-error", "/api/health"];
+const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/auth/password", "/deployment-error", "/api/health"];
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const path = request.nextUrl.pathname;
   const envStatus = getSupabaseEnvStatus();
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+  const isPublic = PUBLIC_PATHS.some((p) => path === p || (p !== "/" && path.startsWith(p + "/")));
 
   if (!envStatus.ok) {
     if (path === "/deployment-error" || path.startsWith("/api/health")) {
