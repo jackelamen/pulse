@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnvStatus, requireSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/deployment-error", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/password", "/deployment-error", "/api/health"];
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function updateSession(request: NextRequest) {

@@ -1,9 +1,7 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
-import type { Route } from "next";
-import { useSearchParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -27,56 +25,13 @@ export default function LoginPage() {
 
 function LoginForm() {
   const params = useSearchParams();
-  const router = useRouter();
   const next = params.get("next") || "/today";
+  const errorMessage = params.get("err");
+  const okMessage = params.get("ok");
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<{ kind: "idle" | "loading" | "ok" | "err"; msg?: string }>({
-    kind: "idle",
-  });
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setStatus({ kind: "loading" });
-
-    try {
-      const supabase = createClient();
-
-      if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-          },
-        });
-        if (error) {
-          setStatus({ kind: "err", msg: error.message });
-        } else if (data.session) {
-          router.push(next as Route);
-          router.refresh();
-        } else {
-          setStatus({ kind: "ok", msg: "Account created. Check your email to confirm it, then sign in." });
-        }
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setStatus({ kind: "err", msg: error.message });
-      } else {
-        router.push(next as Route);
-        router.refresh();
-      }
-    } catch (error) {
-      setStatus({
-        kind: "err",
-        msg: error instanceof Error ? error.message : "Could not sign in. Check the deployment settings.",
-      });
-    }
-  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background p-6">
@@ -94,8 +49,11 @@ function LoginForm() {
           {mode === "signin" ? "Sign in with email and password." : "Create your Pulse account."}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <form action="/auth/password" method="post" className="mt-6 space-y-3">
+          <input type="hidden" name="mode" value={mode} />
+          <input type="hidden" name="next" value={next} />
           <Input
+            name="email"
             type="email"
             placeholder="you@example.com"
             value={email}
@@ -104,6 +62,7 @@ function LoginForm() {
             autoComplete="email"
           />
           <Input
+            name="password"
             type="password"
             placeholder="Password"
             value={password}
@@ -112,26 +71,21 @@ function LoginForm() {
             minLength={6}
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
           />
-          <Button type="submit" className="w-full" disabled={status.kind === "loading"}>
-            {status.kind === "loading"
-              ? "Working..."
-              : mode === "signin"
-                ? "Sign in"
-                : "Create account"}
+          <Button type="submit" className="w-full">
+            {mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
 
-        {status.kind === "ok" && (
-          <p className="mt-3 text-sm text-emerald-600">{status.msg}</p>
+        {okMessage && (
+          <p className="mt-3 text-sm text-emerald-600">{okMessage}</p>
         )}
-        {status.kind === "err" && (
-          <p className="mt-3 text-sm text-destructive">{status.msg}</p>
+        {errorMessage && (
+          <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
         )}
 
         <button
           type="button"
           onClick={() => {
-            setStatus({ kind: "idle" });
             setMode((m) => (m === "signin" ? "signup" : "signin"));
           }}
           className="mt-5 text-xs text-muted-foreground hover:text-foreground"
