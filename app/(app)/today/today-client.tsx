@@ -48,11 +48,11 @@ export function TodayClient() {
   const { scheduled, anytime } = useMemo(() => groupToday(today.data ?? []), [today.data]);
   const priorityTasks = useMemo(
     () =>
-      anytime
+      (today.data ?? [])
         .filter((task) => task.priority >= 2)
         .sort((a, b) => b.priority - a.priority || timeValue(a) - timeValue(b))
         .slice(0, 5),
-    [anytime]
+    [today.data]
   );
   const priorityIds = useMemo(() => new Set(priorityTasks.map((task) => task.id)), [priorityTasks]);
   const flexibleTasks = useMemo(
@@ -181,7 +181,7 @@ function DashboardSummary({
 }) {
   const items = [
     { label: "Open tasks", value: openCount, icon: CalendarClock, meta: `${scheduledCount} timed` },
-    { label: "Priorities", value: priorityCount, icon: Flag, meta: "High priority" },
+    { label: "Priorities", value: priorityCount, icon: Flag, meta: "Needs attention" },
     { label: "Habits", value: habitCount, icon: Repeat, meta: `${completionPercent}% complete` },
     { label: "Done", value: doneCount, icon: ListChecks, meta: "Closed loop" },
   ];
@@ -228,7 +228,7 @@ function PriorityPanel({
       </div>
       {tasks.length === 0 ? (
         <p className="m-5 rounded-xl bg-muted/40 px-4 py-5 text-sm font-medium text-muted-foreground">
-          No high-priority tasks in today’s plan.
+          No priority tasks in today’s plan.
         </p>
       ) : (
         <div>
@@ -585,10 +585,10 @@ function buildProjectProgress(tasks: Task[], projectNames: Map<string, string>) 
 }
 
 function priorityWord(priority: Task["priority"]) {
-  if (priority >= 3) return "Critical";
-  if (priority === 2) return "High";
-  if (priority === 1) return "Medium";
-  return "Low";
+  if (priority >= 3) return "High";
+  if (priority === 2) return "Medium";
+  if (priority === 1) return "Low";
+  return "None";
 }
 
 function priorityBadgeClass(priority: Task["priority"]) {

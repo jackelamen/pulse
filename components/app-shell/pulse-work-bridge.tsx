@@ -42,6 +42,21 @@ function taskTimeValue(task: Task) {
   return new Date(task.start_at ?? task.due_at ?? task.created_at).getTime();
 }
 
+function taskEffectiveDueValue(task: Task) {
+  if (task.start_at) {
+    const start = new Date(task.start_at).getTime();
+    return start + (task.duration_minutes ?? 0) * 60_000;
+  }
+
+  if (task.due_at) {
+    const due = new Date(task.due_at);
+    if (task.all_day) due.setHours(23, 59, 59, 999);
+    return due.getTime();
+  }
+
+  return null;
+}
+
 export function PulseWorkBridge() {
   const today = useTodayTasks();
   const completedToday = useCompletedTodayTasks();
@@ -87,10 +102,16 @@ export function PulseWorkBridge() {
     const timedTasks = openTasks
       .filter((task) => task.start_at)
       .sort((a, b) => String(a.start_at).localeCompare(String(b.start_at)));
+    const overdueIds = new Set<string>((leftovers.data ?? []).map((task) => task.id));
+    for (const task of openTasks) {
+      const effectiveDue = taskEffectiveDueValue(task);
+      if (effectiveDue !== null && effectiveDue < now.getTime()) overdueIds.add(task.id);
+    }
     const nextTimed =
-      timedTasks.find((task) => new Date(task.start_at!).getTime() >= now.getTime()) ??
-      timedTasks[0] ??
-      null;
+      timedTasks.find((task) => {
+        const effectiveDue = taskEffectiveDueValue(task);
+        return effectiveDue !== null && effectiveDue >= now.getTime();
+      }) ?? null;
     const dueHabits = (habits.data ?? []).filter((habit) => isHabitDueOn(habit, now));
     const loggedHabitIds = new Set((habitLogs.data ?? []).map((log) => log.habit_id));
     const focusMinutesToday = (focusSessions.data ?? [])
@@ -103,7 +124,7 @@ export function PulseWorkBridge() {
       date,
       updatedAt: new Date().toISOString(),
       topTasks,
-      overdueCount: (leftovers.data ?? []).length,
+      overdueCount: overdueIds.size,
       nextTimedTask: nextTimed
         ? {
             id: nextTimed.id,
