@@ -51,11 +51,11 @@ export function requireSupabaseEnv() {
 }
 
 export function getPublicPulseEnv(): Required<RuntimePulseEnv> {
-  const { url, anonKey } = requireSupabaseEnv();
+  const env = getRuntimePulseEnv();
 
   return {
-    NEXT_PUBLIC_SUPABASE_URL: url,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
+    NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL || "",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
   };
 }
 

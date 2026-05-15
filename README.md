@@ -72,6 +72,8 @@ npm run build
 npm run start
 ```
 
+The `start` script binds Next to `0.0.0.0` so Hostinger's proxy can reach the Node process. If Hostinger exposes a `PORT` value, Next will use it.
+
 After deployment, open `/api/health`. A healthy deployment returns `"ok": true`. If a required env var is missing, Pulse redirects app pages to `/deployment-error` instead of failing with an opaque 500.
 
 ### Apply the DB migration
