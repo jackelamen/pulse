@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import { getPublicPulseEnv } from "@/lib/env";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -30,13 +32,26 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const publicEnv = getPublicPulseEnv();
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script
+          id="pulse-runtime-env"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `window.__PULSE_ENV__=${JSON.stringify(publicEnv)};`,
+          }}
+        />
+      </head>
       <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
