@@ -1,17 +1,33 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabaseEnvStatus, requireSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/deployment-error", "/api/health"];
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
+  const path = request.nextUrl.pathname;
+  const envStatus = getSupabaseEnvStatus();
+  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+
+  if (!envStatus.ok) {
+    if (path === "/deployment-error" || path.startsWith("/api/health")) {
+      return response;
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = "/deployment-error";
+    url.searchParams.set("missing", envStatus.missing.join(","));
+    return NextResponse.redirect(url);
+  }
+
+  const { url: supabaseUrl, anonKey, cookieDomain } = requireSupabaseEnv();
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    anonKey,
     {
       cookies: {
         getAll() {
@@ -34,9 +50,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

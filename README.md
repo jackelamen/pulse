@@ -52,6 +52,28 @@ Open [http://localhost:3000](http://localhost:3000). The middleware redirects un
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Get from the EDGEx Supabase dashboard, **Settings → API** |
 | `NEXT_PUBLIC_COOKIE_DOMAIN` | only in production | Set to `.theedgex.com` so the auth cookie is shared with the other modules |
 
+### Hostinger deployment check
+
+Deploy Pulse as a Node/Next.js app from the `pulse` repo root, not as static files. In Hostinger, set:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://mdkyijbgvxedelcqcouu.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<Supabase anon/publishable key>
+NEXT_PUBLIC_COOKIE_DOMAIN=
+```
+
+Leave `NEXT_PUBLIC_COOKIE_DOMAIN` blank on Hostinger's temporary domain. Set it to `.theedgex.com` only after Pulse is running on the final EDGEx subdomain.
+
+Use these commands:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+After deployment, open `/api/health`. A healthy deployment returns `"ok": true`. If a required env var is missing, Pulse redirects app pages to `/deployment-error` instead of failing with an opaque 500.
+
 ### Apply the DB migration
 
 The `tasks`, `lists`, and `user_settings` tables live in the shared EDGEx Postgres. Apply the migration once:
