@@ -49,7 +49,15 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+    error: authError,
+  } = await supabase.auth.getUser().catch((error) => {
+    console.error("[pulse] middleware auth check failed", formatError(error));
+    return { data: { user: null }, error };
+  });
+
+  if (authError) {
+    console.error("[pulse] middleware auth error", formatError(authError));
+  }
 
   if (!user && !isPublic) {
     const url = appUrl("/login", request);
@@ -69,4 +77,21 @@ function noStoreRedirect(url: URL) {
   const response = NextResponse.redirect(url);
   response.headers.set("Cache-Control", "no-store, max-age=0");
   return response;
+}
+
+function formatError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    };
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }
