@@ -61,13 +61,19 @@ export function getPublicPulseEnv(): Required<RuntimePulseEnv> {
 
 function getRuntimePulseEnv(): RuntimePulseEnv {
   return {
-    NEXT_PUBLIC_SUPABASE_URL:
+    NEXT_PUBLIC_SUPABASE_URL: cleanEnvValue(
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      (typeof window !== "undefined" ? window.__PULSE_ENV__?.NEXT_PUBLIC_SUPABASE_URL : undefined),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      (typeof window !== "undefined" ? window.__PULSE_ENV__?.NEXT_PUBLIC_SUPABASE_URL : undefined)
+    ),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: cleanEnvValue(
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      (typeof window !== "undefined" ? window.__PULSE_ENV__?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined),
+      (typeof window !== "undefined" ? window.__PULSE_ENV__?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined)
+    ),
   };
+}
+
+function cleanEnvValue(value: string | undefined) {
+  return value?.trim();
 }
 
 function safeHost(value: string) {

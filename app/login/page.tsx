@@ -62,7 +62,7 @@ function LoginForm() {
       window.location.assign(next);
     } catch (error) {
       console.error("[pulse] browser auth failed", error);
-      setMessage({ type: "error", text: "Could not sign in. Please try again." });
+      setMessage({ type: "error", text: `Could not sign in: ${errorMessageFrom(error)}` });
     } finally {
       setIsSubmitting(false);
     }
@@ -135,4 +135,15 @@ function LoginForm() {
       </div>
     </div>
   );
+}
+
+function errorMessageFrom(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error) return error;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown auth error";
+  }
 }
