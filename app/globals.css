@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+    --font-manrope: Manrope, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    --background: 220 28% 97%;
+    --foreground: 235 30% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 235 30% 8%;
+
+    --primary: 16 85% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 230 18% 95%;
+    --secondary-foreground: 235 30% 12%;
+
+    --muted: 228 22% 94%;
+    --muted-foreground: 230 10% 42%;
+
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 20% 88%;
+    --input: 228 20% 88%;
+    --ring: 16 85% 56%;
+    --pulse-sidebar-rail: linear-gradient(180deg, #253568 0%, #303b72 48%, #3c4a80 100%);
+
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 235 28% 7%;
+    --foreground: 220 20% 96%;
+
+    --card: 235 24% 10%;
+    --card-foreground: 220 20% 96%;
+
+    --primary: 16 85% 60%;
+    --primary-foreground: 235 30% 7%;
+
+    --secondary: 235 18% 16%;
+    --secondary-foreground: 220 20% 96%;
+
+    --muted: 235 18% 16%;
+    --muted-foreground: 230 12% 65%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 235 18% 18%;
+    --input: 235 18% 18%;
+    --ring: 16 85% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    background:
+      linear-gradient(180deg, hsl(220 40% 99%) 0%, hsl(var(--background)) 42%),
+      hsl(var(--background));
+    font-feature-settings: "cv11", "ss01";
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dark body {
+    background:
+      radial-gradient(circle at top left, hsl(230 32% 15%) 0, transparent 34rem),
+      linear-gradient(180deg, hsl(235 28% 9%) 0%, hsl(var(--background)) 48%),
+      hsl(var(--background));
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+}
+
+/* Pulse-specific utility shortcuts */
+@layer components {
+  .pulse-pane {
+    @apply rounded-xl border border-border/80 bg-card shadow-[0_12px_34px_rgba(20,24,45,0.06),0_1px_2px_rgba(20,24,45,0.05)];
+  }
+  .dark .pulse-pane {
+    @apply shadow-[0_18px_42px_rgba(0,0,0,0.28)];
+  }
+  .pulse-row {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/70;
+  }
+  .pulse-kbd {
+    @apply rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-[inset_0_-1px_0_rgba(15,16,32,0.06)];
+  }
+  .pulse-section-label {
+    @apply mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .pulse-chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground;
+  }
+  .pulse-mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .pulse-density-compact .pulse-row {
+    @apply py-1.5;
+  }
+  .pulse-density-compact .pulse-pane {
+    @apply rounded-lg;
+  }
+  .pulse-density-compact input,
+  .pulse-density-compact select,
+  .pulse-density-compact button {
+    @apply text-xs;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
