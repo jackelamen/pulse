@@ -13,7 +13,7 @@ export async function updateSession(request: NextRequest) {
   const envStatus = getSupabaseEnvStatus();
   const isPublic = PUBLIC_PATHS.some((p) => path === p || (p !== "/" && path.startsWith(p + "/")));
 
-  if (path === "/") {
+  if (isPublic) {
     return response;
   }
 

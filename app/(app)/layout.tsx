@@ -16,7 +16,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser().catch((error) => {
+    console.error("[pulse] app auth check failed", formatError(error));
+    return { data: { user: null } };
+  });
 
   if (!user) {
     redirect("/login");
@@ -40,4 +43,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <PulseWorkBridge />
     </div>
   );
+}
+
+function formatError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    };
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }
