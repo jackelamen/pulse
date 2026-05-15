@@ -13,7 +13,7 @@ import { isTypingTarget, useGlobalKey } from "@/lib/ui/shortcuts";
  *   ?         toggle shortcut overlay
  *   /         focus search (placeholder — wired in M2)
  *   esc       close quick-add / shortcut overlay
- *   g then    i | t | u | h | c | f | s   jump to view
+ *   g then    i | t | u | l | h | c | f | s   jump to view
  */
 export function KeyboardShortcuts() {
   const router = useRouter();
@@ -85,6 +85,8 @@ function navTarget(key: string): Route | null {
       return "/today";
     case "u":
       return "/upcoming";
+    case "l":
+      return "/timeline";
     case "h":
       return "/habits";
     case "c":

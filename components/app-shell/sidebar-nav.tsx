@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import type { Route } from "next";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Inbox,
   Sun,
   CalendarDays,
   Calendar,
+  Clock3,
   Repeat,
   Timer,
   ArchiveRestore,
@@ -49,7 +52,7 @@ const PINNED: NavItem[] = [
 const CALENDAR_ITEMS: NavItem[] = [
   { href: "/calendar", label: "Calendar", icon: Calendar, shortcut: "g c" },
   { href: "/upcoming", label: "Upcoming", icon: CalendarDays, shortcut: "g u" },
-  { href: "/today", label: "Today schedule", icon: Sun, shortcut: "g t" },
+  { href: "/timeline", label: "Timeline View", icon: Clock3, shortcut: "g l" },
 ];
 
 const HABIT_ITEMS: NavItem[] = [
@@ -80,9 +83,20 @@ const RAIL: Array<{
 
 export function SidebarNav({ email, name }: { email?: string | null; name?: string | null }) {
   const path = usePathname();
+  const queryClient = useQueryClient();
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
+  const [refreshing, setRefreshing] = useState(false);
   const mode = modeForPath(path);
   const label = name || email || "Not signed in";
+
+  async function refreshData() {
+    setRefreshing(true);
+    try {
+      await queryClient.invalidateQueries();
+    } finally {
+      window.setTimeout(() => setRefreshing(false), 350);
+    }
+  }
 
   return (
     <nav className="flex h-full overflow-hidden border-r border-white/10 text-white shadow-[12px_0_32px_rgba(15,16,32,0.12)]">
@@ -124,19 +138,21 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
           <button
             type="button"
             aria-label="Sync"
-            title="Sync"
+            title="Refresh data"
+            onClick={refreshData}
+            disabled={refreshing}
             className="grid h-10 w-10 place-items-center rounded-2xl hover:bg-white/10 hover:text-white"
           >
-            <RefreshCw className="h-5 w-5" />
+            <RefreshCw className={cn("h-5 w-5", refreshing && "animate-spin")} />
           </button>
           <button
             type="button"
             aria-label="Notifications"
-            title="Notifications"
-            className="relative grid h-10 w-10 place-items-center rounded-2xl hover:bg-white/10 hover:text-white"
+            title="Notifications are not connected yet"
+            disabled
+            className="relative grid h-10 w-10 place-items-center rounded-2xl opacity-55"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-[#3c4a80]" />
           </button>
           <button
             type="button"
@@ -231,7 +247,7 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
 }
 
 function modeForPath(path: string): NavMode {
-  if (path.startsWith("/calendar") || path.startsWith("/upcoming")) return "calendar";
+  if (path.startsWith("/calendar") || path.startsWith("/upcoming") || path.startsWith("/timeline")) return "calendar";
   if (path.startsWith("/habits")) return "habits";
   if (path.startsWith("/focus")) return "focus";
   if (path.startsWith("/settings")) return "settings";

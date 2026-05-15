@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { Search, Hash, AtSign, Slash, Sun, CalendarDays, Inbox, Timer, Repeat, Layers } from "lucide-react";
+import { Search, Hash, AtSign, Slash, Sun, CalendarDays, Inbox, Timer, Repeat, Layers, Clock3 } from "lucide-react";
 import { useUi } from "@/lib/ui/store";
 import { createClient } from "@/lib/supabase/client";
 import { useLists } from "@/lib/lists/queries";
@@ -21,6 +21,7 @@ const STATIC_COMMANDS: Array<{ label: string; href: Route; icon: React.Component
   { label: "Go to Today", href: "/today", icon: Sun },
   { label: "Go to Inbox", href: "/inbox", icon: Inbox },
   { label: "Go to Upcoming", href: "/upcoming", icon: CalendarDays },
+  { label: "Go to Timeline View", href: "/timeline", icon: Clock3 },
   { label: "Go to Projects", href: "/projects", icon: Layers },
   { label: "Go to Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Go to Habits", href: "/habits", icon: Repeat },
