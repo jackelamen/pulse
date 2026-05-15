@@ -39,34 +39,42 @@ function LoginForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const supabase = createClient();
     setStatus({ kind: "loading" });
 
-    if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-        },
-      });
+    try {
+      const supabase = createClient();
+
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          },
+        });
+        if (error) {
+          setStatus({ kind: "err", msg: error.message });
+        } else if (data.session) {
+          router.push(next as Route);
+          router.refresh();
+        } else {
+          setStatus({ kind: "ok", msg: "Account created. Check your email to confirm it, then sign in." });
+        }
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setStatus({ kind: "err", msg: error.message });
-      } else if (data.session) {
+      } else {
         router.push(next as Route);
         router.refresh();
-      } else {
-        setStatus({ kind: "ok", msg: "Account created. Check your email to confirm it, then sign in." });
       }
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setStatus({ kind: "err", msg: error.message });
-    } else {
-      router.push(next as Route);
-      router.refresh();
+    } catch (error) {
+      setStatus({
+        kind: "err",
+        msg: error instanceof Error ? error.message : "Could not sign in. Check the deployment settings.",
+      });
     }
   }
 
