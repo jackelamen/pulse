@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireSupabaseEnv } from "@/lib/env";
+import { appOrigin, appUrl } from "@/lib/request-origin";
 import type { Database } from "@/types/database";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
@@ -12,9 +13,7 @@ export async function POST(request: NextRequest) {
   const mode = String(formData.get("mode") || "signin");
   const next = sanitizeNext(String(formData.get("next") || "/today"));
 
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = mode === "signup" ? "/login" : next;
-  redirectUrl.search = "";
+  const redirectUrl = appUrl(mode === "signup" ? "/login" : next, request);
 
   const response = NextResponse.redirect(redirectUrl);
   const { url, anonKey, cookieDomain } = requireSupabaseEnv();
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       options: {
-        emailRedirectTo: `${request.nextUrl.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${appOrigin(request)}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
 
@@ -59,9 +58,7 @@ export async function POST(request: NextRequest) {
 }
 
 function redirectWithMessage(request: NextRequest, message: string, status: "err" | "ok", next: string) {
-  const url = request.nextUrl.clone();
-  url.pathname = "/login";
-  url.search = "";
+  const url = appUrl("/login", request);
   url.searchParams.set(status, message);
   url.searchParams.set("next", next);
   return NextResponse.redirect(url);

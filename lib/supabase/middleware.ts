@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnvStatus, requireSupabaseEnv } from "@/lib/env";
+import { appUrl } from "@/lib/request-origin";
 import type { Database } from "@/types/database";
 
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/password", "/deployment-error", "/api/health"];
@@ -17,8 +18,7 @@ export async function updateSession(request: NextRequest) {
       return response;
     }
 
-    const url = request.nextUrl.clone();
-    url.pathname = "/deployment-error";
+    const url = appUrl("/deployment-error", request);
     url.searchParams.set("missing", envStatus.missing.join(","));
     return NextResponse.redirect(url);
   }
@@ -52,16 +52,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    const url = appUrl("/login", request);
     url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
 
   if (user && path === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/today";
-    url.search = "";
+    const url = appUrl("/today", request);
     return NextResponse.redirect(url);
   }
 
