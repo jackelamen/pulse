@@ -213,39 +213,39 @@ function DashboardHero({
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-white/10 px-4 py-3 text-white shadow-[0_16px_42px_rgba(3,10,25,0.16)] md:px-5 md:py-4 xl:rounded-xl xl:px-4 xl:py-2.5"
+      className="overflow-hidden rounded-2xl border border-white/10 px-4 py-3 text-white shadow-[0_16px_42px_rgba(3,10,25,0.16)] md:px-5 md:py-4 xl:rounded-xl xl:py-3"
       style={{ background: "var(--pulse-sidebar-rail)" }}
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
-        <div className="min-w-0 xl:flex xl:items-center xl:gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60 xl:shrink-0 xl:text-[9px] xl:tracking-[0.16em]">
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
             {header.dateLabel}
           </p>
-          <h1 className="mt-1 truncate font-display text-2xl font-semibold leading-none tracking-tight text-white md:text-3xl xl:mt-0 xl:text-xl">
+          <h1 className="mt-1 truncate font-display text-2xl font-semibold leading-none tracking-tight text-white md:text-3xl xl:text-2xl">
             {greeting}
           </h1>
-          <p className="mt-1.5 hidden max-w-2xl text-xs leading-5 text-white/62 sm:block xl:hidden">
+          <p className="mt-1.5 hidden max-w-2xl text-xs leading-5 text-white/62 sm:block">
             Ready for the day? Here is your prioritized pulse.
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 xl:flex xl:shrink-0 xl:gap-2">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {items.map(({ label, value, icon: Icon, meta }) => (
             <div
               key={label}
-              className="min-w-0 rounded-xl border border-white/10 bg-white/[0.07] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] xl:flex xl:min-w-[7.25rem] xl:items-center xl:gap-2 xl:rounded-lg xl:px-2.5 xl:py-1.5"
+              className="min-w-0 rounded-xl border border-white/10 bg-white/[0.07] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] xl:px-3 xl:py-2.5"
             >
-              <div className="flex items-center gap-1.5 xl:contents">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white ring-1 ring-white/10 xl:h-6 xl:w-6">
+              <div className="flex items-center gap-1.5">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white ring-1 ring-white/10">
                   <Icon className="h-3.5 w-3.5" />
                 </div>
-                <div className="hidden min-w-0 truncate text-[10px] font-semibold leading-tight text-white/55 sm:block xl:hidden">
+                <div className="hidden min-w-0 truncate text-[10px] font-semibold leading-tight text-white/55 sm:block">
                   {meta}
                 </div>
               </div>
-              <div className="mt-2 flex min-w-0 items-end gap-1.5 xl:mt-0 xl:items-center">
-                <div className="font-display text-2xl font-semibold leading-none text-white md:text-3xl xl:text-xl">{value}</div>
-                <div className="truncate pb-0.5 text-[10px] font-semibold leading-tight text-white/72 sm:text-[11px] md:text-xs xl:pb-0 xl:text-[11px]">{label}</div>
+              <div className="mt-2 flex min-w-0 items-end gap-1.5">
+                <div className="font-display text-2xl font-semibold leading-none text-white md:text-3xl">{value}</div>
+                <div className="truncate pb-0.5 text-[10px] font-semibold leading-tight text-white/72 sm:text-[11px] md:text-xs">{label}</div>
               </div>
             </div>
           ))}
