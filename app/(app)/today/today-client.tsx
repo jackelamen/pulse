@@ -205,47 +205,47 @@ function DashboardHero({
     firstName && header.greeting !== "Today" ? `, ${firstName}` : ""
   }`;
   const items = [
-    { label: "Open tasks", value: openCount, icon: CalendarClock, meta: `${scheduledCount} timed` },
-    { label: "Priorities", value: priorityCount, icon: Flag, meta: "Needs attention" },
-    { label: "Habits", value: habitCount, icon: Repeat, meta: `${completionPercent}% complete` },
-    { label: "Done", value: doneCount, icon: ListChecks, meta: "Closed loop" },
+    { label: "Open", value: openCount, icon: CalendarClock, meta: `${scheduledCount} timed` },
+    { label: "Priority", value: priorityCount, icon: Flag, meta: "focus" },
+    { label: "Habits", value: habitCount, icon: Repeat, meta: `${completionPercent}%` },
+    { label: "Done", value: doneCount, icon: ListChecks, meta: "today" },
   ];
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-white/10 p-4 text-white shadow-[0_18px_48px_rgba(3,10,25,0.18)] md:p-5"
+      className="overflow-hidden rounded-2xl border border-white/10 px-4 py-3 text-white shadow-[0_16px_42px_rgba(3,10,25,0.16)] md:px-5 md:py-4"
       style={{ background: "var(--pulse-sidebar-rail)" }}
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(420px,1fr)] lg:items-center">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/65 md:text-xs">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0 xl:max-w-[34rem]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
             {header.dateLabel}
           </p>
-          <h1 className="mt-2 truncate font-display text-3xl font-semibold leading-none tracking-tight text-white md:text-4xl">
+          <h1 className="mt-1 truncate font-display text-2xl font-semibold leading-none tracking-tight text-white md:text-3xl">
             {greeting}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-5 text-white/68">
+          <p className="mt-1.5 hidden max-w-2xl text-xs leading-5 text-white/62 sm:block">
             Ready for the day? Here is your prioritized pulse.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 xl:min-w-[34rem]">
           {items.map(({ label, value, icon: Icon, meta }) => (
             <div
               key={label}
-              className="rounded-xl border border-white/12 bg-white/[0.08] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              className="min-w-0 rounded-xl border border-white/10 bg-white/[0.07] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
             >
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 text-white ring-1 ring-white/10">
-                  <Icon className="h-4 w-4" />
+              <div className="flex items-center gap-1.5">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white ring-1 ring-white/10">
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
-                <div className="min-w-0 truncate text-[10px] font-semibold leading-tight text-white/58">
+                <div className="min-w-0 truncate text-[10px] font-semibold leading-tight text-white/55">
                   {meta}
                 </div>
               </div>
-              <div className="mt-3 flex items-end gap-2">
-                <div className="font-display text-3xl font-semibold leading-none text-white md:text-4xl">{value}</div>
-                <div className="pb-0.5 text-xs font-semibold leading-tight text-white/70 md:text-sm">{label}</div>
+              <div className="mt-2 flex min-w-0 items-end gap-1.5">
+                <div className="font-display text-2xl font-semibold leading-none text-white md:text-3xl">{value}</div>
+                <div className="truncate pb-0.5 text-[11px] font-semibold leading-tight text-white/70 md:text-xs">{label}</div>
               </div>
             </div>
           ))}
