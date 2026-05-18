@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CalendarClock,
@@ -30,11 +30,17 @@ import { useLists } from "@/lib/lists/queries";
 import { isHabitDueOn } from "@/lib/habits/dates";
 import { isSameDay } from "@/lib/date";
 import { useUi } from "@/lib/ui/store";
+import { formatDateLong } from "@/lib/utils";
 import type { Task } from "@/lib/tasks/types";
 import type { Habit } from "@/lib/habits/types";
 import { useRouter } from "next/navigation";
 
-export function TodayClient() {
+type TodayHeaderState = {
+  dateLabel: string;
+  greeting: string;
+};
+
+export function TodayClient({ firstName }: { firstName: string | null }) {
   const today = useTodayTasks();
   const completedToday = useCompletedTodayTasks();
   const leftovers = useLeftoverTasks();
@@ -92,7 +98,8 @@ export function TodayClient() {
 
       <section className="grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_420px]">
         <main className="space-y-7">
-          <DashboardSummary
+          <DashboardHero
+            firstName={firstName}
             openCount={(today.data ?? []).length}
             scheduledCount={scheduled.length}
             priorityCount={priorityTasks.length}
@@ -164,7 +171,8 @@ export function TodayClient() {
   );
 }
 
-function DashboardSummary({
+function DashboardHero({
+  firstName,
   openCount,
   scheduledCount,
   priorityCount,
@@ -172,6 +180,7 @@ function DashboardSummary({
   doneCount,
   completionPercent,
 }: {
+  firstName: string | null;
   openCount: number;
   scheduledCount: number;
   priorityCount: number;
@@ -179,6 +188,22 @@ function DashboardSummary({
   doneCount: number;
   completionPercent: number;
 }) {
+  const [header, setHeader] = useState<TodayHeaderState>({
+    dateLabel: "",
+    greeting: "Today",
+  });
+
+  useEffect(() => {
+    const now = new Date();
+    setHeader({
+      dateLabel: formatDateLong(now),
+      greeting: greetingFor(now),
+    });
+  }, []);
+
+  const greeting = `${header.greeting}${
+    firstName && header.greeting !== "Today" ? `, ${firstName}` : ""
+  }`;
   const items = [
     { label: "Open tasks", value: openCount, icon: CalendarClock, meta: `${scheduledCount} timed` },
     { label: "Priorities", value: priorityCount, icon: Flag, meta: "Needs attention" },
@@ -187,28 +212,52 @@ function DashboardSummary({
   ];
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map(({ label, value, icon: Icon, meta }) => (
-        <div
-          key={label}
-          className="pulse-pane min-h-[10rem] bg-card/95 px-6 py-5"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/10">
-              <Icon className="h-5 w-5" />
-            </div>
-            <div className="pt-1 text-right text-xs font-semibold text-muted-foreground">
-              {meta}
-            </div>
-          </div>
-          <div className="mt-6">
-            <div className="font-display text-5xl font-semibold leading-none text-foreground">{value}</div>
-            <div className="mt-2 text-base font-semibold text-muted-foreground">{label}</div>
-          </div>
+    <section className="pulse-pane overflow-hidden bg-card/95 p-5 md:p-6">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(520px,1fr)] xl:items-end">
+        <div>
+          <p className="min-h-4 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+            {header.dateLabel}
+          </p>
+          <h1 className="mt-3 font-display text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
+            {greeting}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+            Ready for the day? Here is your prioritized pulse.
+          </p>
         </div>
-      ))}
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {items.map(({ label, value, icon: Icon, meta }) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-border bg-muted/25 px-4 py-4 shadow-[0_8px_24px_rgba(20,24,45,0.04)] dark:bg-white/[0.04]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/10">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="pt-1 text-right text-[11px] font-semibold leading-tight text-muted-foreground">
+                  {meta}
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="font-display text-4xl font-semibold leading-none text-foreground">{value}</div>
+                <div className="mt-1.5 text-sm font-semibold text-muted-foreground">{label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
+}
+
+function greetingFor(d: Date) {
+  const h = d.getHours();
+  if (h < 5) return "Still up";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function PriorityPanel({
