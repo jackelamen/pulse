@@ -22,6 +22,7 @@ export type TaskEditableFields = Partial<
     | "due_at"
     | "duration_minutes"
     | "all_day"
+    | "reminder_at"
     | "tags"
   >
 >;

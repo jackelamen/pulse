@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2 } from "lucide-react";
+import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
@@ -260,6 +260,14 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
                 persist({ due_at: fromLocalInput(e.target.value) })
               }
               className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+            />
+          </Row>
+
+          <Row icon={<Bell className="h-4 w-4 text-muted-foreground" />} label="Reminder">
+            <ReminderPicker
+              value={value.reminder_at as string | null}
+              dueAt={value.due_at}
+              onChange={(v) => persist({ reminder_at: v } as Partial<Task>)}
             />
           </Row>
 
@@ -564,6 +572,75 @@ function RecurrencePicker({
         <div className="text-[11px] text-muted-foreground">
           Current: <span className="font-medium">{recurrenceLabel(value)}</span>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ReminderPicker({
+  value,
+  dueAt,
+  onChange,
+}: {
+  value: string | null;
+  dueAt: string | null | undefined;
+  onChange: (v: string | null) => void;
+}) {
+  // Quick presets are offsets relative to the task's due time (if set).
+  // If there's no due time, they're offsets from "now" at time of clicking.
+  const presets: Array<{ label: string; minutes: number }> = [
+    { label: "15 m", minutes: 15 },
+    { label: "30 m", minutes: 30 },
+    { label: "1 h",  minutes: 60 },
+    { label: "2 h",  minutes: 120 },
+    { label: "1 d",  minutes: 24 * 60 },
+  ];
+
+  function applyPreset(offsetMinutes: number) {
+    const base = dueAt ? new Date(dueAt) : new Date();
+    base.setMinutes(base.getMinutes() - offsetMinutes);
+    onChange(base.toISOString());
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => applyPreset(p.minutes)}
+            className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            {dueAt ? `${p.label} before` : `in ${p.label}`}
+          </button>
+        ))}
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <input
+        type="datetime-local"
+        value={toLocalInput(value)}
+        onChange={(e) => onChange(fromLocalInput(e.target.value))}
+        className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+      />
+      {value && (
+        <p className="text-[11px] text-muted-foreground">
+          Reminder set for {new Date(value).toLocaleString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </p>
       )}
     </div>
   );

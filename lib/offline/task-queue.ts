@@ -111,6 +111,7 @@ export function makeQueuedTask(input: TaskInsert, localId?: string): Task {
     completed_at: input.completed_at ?? null,
     recurrence_rule: input.recurrence_rule ?? null,
     recurrence_parent_id: input.recurrence_parent_id ?? null,
+    reminder_at: input.reminder_at ?? null,
     sort_order: input.sort_order ?? 0,
     tags: input.tags ?? [],
     created_at: now,

@@ -85,6 +85,7 @@ export interface Database {
           completed_at: string | null;
           recurrence_rule: string | null;
           recurrence_parent_id: string | null;
+          reminder_at: string | null;
           sort_order: number;
           tags: string[];
           created_at: string;
@@ -107,6 +108,7 @@ export interface Database {
           completed_at?: string | null;
           recurrence_rule?: string | null;
           recurrence_parent_id?: string | null;
+          reminder_at?: string | null;
           sort_order?: number;
           tags?: string[];
           created_at?: string;
@@ -252,6 +254,28 @@ export interface Database {
           deleted_at?: string | null;
         } & AnyRecord;
         Update: Partial<Database["public"]["Tables"]["habit_logs"]["Insert"]> & AnyRecord;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+          updated_at: string;
+        } & AnyRecord;
+        Insert: {
+          id?: string;
+          user_id?: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string;
+          updated_at?: string;
+        } & AnyRecord;
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]> & AnyRecord;
         Relationships: [];
       };
       user_settings: {
