@@ -267,6 +267,7 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
             <ReminderPicker
               value={value.reminder_at as string | null}
               dueAt={value.due_at}
+              startAt={value.start_at}
               onChange={(v) => persist({ reminder_at: v } as Partial<Task>)}
             />
           </Row>
@@ -580,51 +581,54 @@ function RecurrencePicker({
 function ReminderPicker({
   value,
   dueAt,
+  startAt,
   onChange,
 }: {
   value: string | null;
   dueAt: string | null | undefined;
+  startAt: string | null | undefined;
   onChange: (v: string | null) => void;
 }) {
-  // Quick presets are offsets relative to the task's due time (if set).
-  // If there's no due time, they're offsets from "now" at time of clicking.
+  // Presets are always "X before" the task's start or due time.
+  // If neither is set, the presets are hidden and the user must pick a custom time.
+  const anchor = startAt ?? dueAt ?? null;
+
   const presets: Array<{ label: string; minutes: number }> = [
-    { label: "15 m", minutes: 15 },
-    { label: "30 m", minutes: 30 },
-    { label: "1 h",  minutes: 60 },
-    { label: "2 h",  minutes: 120 },
-    { label: "1 d",  minutes: 24 * 60 },
+    { label: "15 min before", minutes: 15 },
+    { label: "30 min before", minutes: 30 },
+    { label: "1 hour before", minutes: 60 },
+    { label: "2 hours before", minutes: 120 },
+    { label: "1 day before",  minutes: 24 * 60 },
+    { label: "2 days before", minutes: 2 * 24 * 60 },
   ];
 
   function applyPreset(offsetMinutes: number) {
-    const base = dueAt ? new Date(dueAt) : new Date();
+    if (!anchor) return;
+    const base = new Date(anchor);
     base.setMinutes(base.getMinutes() - offsetMinutes);
     onChange(base.toISOString());
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1">
-        {presets.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => applyPreset(p.minutes)}
-            className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
-          >
-            {dueAt ? `${p.label} before` : `in ${p.label}`}
-          </button>
-        ))}
-        {value && (
-          <button
-            type="button"
-            onClick={() => onChange(null)}
-            className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+      {anchor ? (
+        <div className="flex flex-wrap gap-1">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => applyPreset(p.minutes)}
+              className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">
+          Set a start or due date to use quick presets.
+        </p>
+      )}
       <input
         type="datetime-local"
         value={toLocalInput(value)}
@@ -632,15 +636,24 @@ function ReminderPicker({
         className="rounded-md border border-border bg-card px-2 py-1 text-sm"
       />
       {value && (
-        <p className="text-[11px] text-muted-foreground">
-          Reminder set for {new Date(value).toLocaleString(undefined, {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-muted-foreground">
+            {new Date(value).toLocaleString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="rounded-md border border-transparent px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            Clear
+          </button>
+        </div>
       )}
     </div>
   );
