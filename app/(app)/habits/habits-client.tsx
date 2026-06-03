@@ -452,17 +452,33 @@ function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
 
   return (
     <article className="pulse-pane sticky top-6 overflow-hidden">
-      <div className="flex items-center gap-4 border-b border-border/70 px-6 py-5">
-        <div
-          className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-white shadow-[0_14px_28px_rgba(20,24,45,0.14)]"
-          style={{
-            background: `linear-gradient(135deg, ${color}, ${mixWithWhite(color, 0.25)})`,
-          }}
-        >
-          <Icon className="h-8 w-8" />
+      <div className="flex items-start gap-4 border-b border-border/70 px-6 py-5">
+        {/* Icon + toggle stacked on mobile, side by side on sm+ */}
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <div
+            className="grid h-16 w-16 place-items-center rounded-full text-white shadow-[0_14px_28px_rgba(20,24,45,0.14)]"
+            style={{
+              background: `linear-gradient(135deg, ${color}, ${mixWithWhite(color, 0.25)})`,
+            }}
+          >
+            <Icon className="h-8 w-8" />
+          </div>
+          <button
+            type="button"
+            onClick={() => toggle.mutate({ habitId: habit.id })}
+            className={cn(
+              "grid h-9 w-9 place-items-center rounded-full border transition-colors",
+              todayDone ? "border-transparent text-white" : "border-muted bg-muted/70 text-muted-foreground"
+            )}
+            style={todayDone ? { backgroundColor: color } : undefined}
+            aria-label={todayDone ? `Unlog ${habit.name}` : `Log ${habit.name}`}
+          >
+            <Check className={cn("h-4 w-4 transition-opacity", todayDone ? "opacity-100" : "opacity-30")} />
+          </button>
         </div>
 
-        <div className="min-w-0 flex-1">
+        {/* Title + meta */}
+        <div className="min-w-0 flex-1 pt-1">
           {editing ? (
             <input
               autoFocus
@@ -482,7 +498,7 @@ function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="block truncate font-display text-2xl font-semibold"
+              className="block w-full truncate text-left font-display text-2xl font-semibold"
             >
               {habit.name}
             </button>
@@ -494,23 +510,11 @@ function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => toggle.mutate({ habitId: habit.id })}
-          className={cn(
-            "grid h-12 w-12 shrink-0 place-items-center rounded-full border transition-colors",
-            todayDone ? "border-transparent text-white" : "border-muted bg-muted/70 text-transparent"
-          )}
-          style={todayDone ? { backgroundColor: color } : undefined}
-          aria-label={todayDone ? `Unlog ${habit.name}` : `Log ${habit.name}`}
-        >
-          {todayDone && <Check className="h-4 w-4" />}
-        </button>
-
+        {/* Archive — top-right corner */}
         <button
           type="button"
           onClick={() => archive.mutate(habit.id)}
-          className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="shrink-0 rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Archive habit"
         >
           <Archive className="h-4 w-4" />
