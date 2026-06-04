@@ -5,7 +5,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  manifest: "/manifest.webmanifest",
   title: {
     default: "Pulse",
     template: "%s — Pulse",
