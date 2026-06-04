@@ -13,10 +13,14 @@ export const metadata: Metadata = {
   description: "Tasks, calendar, focus, habits. The Tasks module of TheEDGEx.",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icons/pulse-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/pulse-512.png", sizes: "512x512", type: "image/png" },
       { url: "/icons/pulse.svg", type: "image/svg+xml" },
     ],
-    apple: "/icons/pulse.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   appleWebApp: {
     capable: true,
