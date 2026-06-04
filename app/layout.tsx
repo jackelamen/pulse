@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   },
   description: "Tasks, calendar, focus, habits. The Tasks module of TheEDGEx.",
   icons: {
-    icon: "/icons/pulse.svg",
-    apple: "/icons/pulse.svg",
+    icon: "/icons/pulse.png",
+    apple: "/icons/pulse.png",
   },
   appleWebApp: {
     capable: true,
