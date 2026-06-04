@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   },
   description: "Tasks, calendar, focus, habits. The Tasks module of TheEDGEx.",
   icons: {
-    icon: "/icons/pulse.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/icons/pulse.svg", type: "image/svg+xml" },
+    ],
     apple: "/icons/pulse.png",
   },
   appleWebApp: {
