@@ -48,10 +48,12 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
           onCheckedChange(!checked);
         }}
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+          "inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-150",
           dim,
-          checked ? fill : ring,
-          "bg-card shadow-[inset_0_0_0_2px_rgba(255,255,255,0.25)] hover:border-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+          checked
+            ? cn(fill, "scale-110 shadow-[0_0_0_3px_rgba(0,0,0,0.08)]")
+            : cn(ring, "bg-card hover:border-foreground/60"),
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
           className
         )}
         {...rest}

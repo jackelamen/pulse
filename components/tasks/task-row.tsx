@@ -125,7 +125,10 @@ export function TaskRow({
 
       <div
         className={cn(
-          "group relative z-10 flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3.5 shadow-[0_1px_2px_rgba(20,24,45,0.04)] transition-colors hover:border-border hover:bg-muted/35 hover:shadow-[0_10px_26px_rgba(20,24,45,0.07)]",
+          "group relative z-10 flex items-start gap-3 rounded-xl border px-3.5 transition-colors",
+          done
+            ? "border-border/40 bg-muted/30 shadow-none"
+            : "border-border/70 bg-card shadow-[0_1px_2px_rgba(20,24,45,0.04)] hover:border-border hover:bg-muted/35 hover:shadow-[0_10px_26px_rgba(20,24,45,0.07)]",
           dense ? "py-2" : "py-3",
           dragX === 0 && "transition-transform"
         )}
@@ -165,7 +168,7 @@ export function TaskRow({
               className={cn(
                 "block w-full truncate text-left text-sm transition-colors",
                 !done && "font-medium text-foreground",
-                done && "text-muted-foreground line-through decoration-muted-foreground/50"
+                done && "text-muted-foreground/60 line-through decoration-muted-foreground/40 decoration-[1.5px]"
               )}
             >
               {task.title}
@@ -173,7 +176,7 @@ export function TaskRow({
           )}
 
           {(task.due_at || task.start_at || task.tags.length > 0 || task.priority > 0 || task.recurrence_rule) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <div className={cn("mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]", done ? "opacity-40" : "text-muted-foreground")}>
               {(task.due_at || task.start_at) && (
                 <span className="pulse-chip">
                   <CalendarClock className="h-3 w-3" />
