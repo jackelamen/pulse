@@ -6,19 +6,19 @@
  *     without a network connection.
  *  2. Push notifications — listen for 'push' events sent by the server and
  *     show a notification via self.registration.showNotification().
- *  3. Reminder polling — every ~60 s, call POST /api/push/notify (which runs
- *     server-side with the user's auth cookie). The server finds tasks whose
- *     reminder_at is within the next 2 minutes, fires Web Push to every
- *     registered subscription for that user, and clears reminder_at.
- *     This means reminders fire even when the app tab isn't active, as long
- *     as the PWA's service worker is alive.
+ *  3. (Reminders are NOT triggered here.) A server-side pg_cron job invokes
+ *     the `send-reminders` Edge Function every minute, which sends Web Push for
+ *     any due reminder across all users. That works even when Pulse is closed
+ *     and the service worker is dead — which is exactly why the old in-SW
+ *     setInterval poller was removed. This worker only RECEIVES the resulting
+ *     push (see the 'push' handler below) and shows the notification.
  *
  * Caching strategy: deliberately minimal. We do NOT cache navigation
  * responses (RSC payloads break if served from cache). Only versioned static
  * assets and the offline fallback are cached.
  */
 
-const CACHE_NAME = "pulse-shell-v3";
+const CACHE_NAME = "pulse-shell-v4";
 const SHELL_URLS = ["/offline.html", "/icons/pulse.svg"];
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
@@ -27,7 +27,18 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_URLS))
+      .then((cache) =>
+        Promise.all(
+          SHELL_URLS.map((url) =>
+            fetch(url)
+              .then((response) => {
+                if (!response.ok) return undefined;
+                return cache.put(url, response);
+              })
+              .catch(() => undefined)
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -41,11 +52,7 @@ self.addEventListener("activate", (event) => {
           keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
         )
       )
-      .then(() => {
-        self.clients.claim();
-        // Start the reminder polling loop once the SW is active.
-        scheduleReminderPoll();
-      })
+      .then(() => self.clients.claim())
   );
 });
 
@@ -137,45 +144,4 @@ self.addEventListener("notificationclick", (event) => {
         return self.clients.openWindow(targetUrl);
       })
   );
-});
-
-// ── Reminder polling ─────────────────────────────────────────────────────────
-//
-// We use setInterval inside the SW as a lightweight alternative to the
-// Background Periodic Sync API (which requires a site engagement score and
-// isn't universally available). The interval runs while the SW is alive —
-// which, for an installed PWA, is typically the whole day.
-//
-// The server-side POST /api/push/notify does the heavy lifting: it queries
-// for tasks with reminder_at <= now + 2 min, sends Web Push, then clears
-// reminder_at so the same task never fires twice.
-
-let _pollInterval = null;
-
-function scheduleReminderPoll() {
-  if (_pollInterval) return; // Already running
-  // Fire once immediately (in case the SW just woke up and there are overdue
-  // reminders), then every 60 seconds.
-  pollReminders();
-  _pollInterval = setInterval(pollReminders, 60 * 1000);
-}
-
-async function pollReminders() {
-  try {
-    // credentials: "include" sends the auth cookie so the server can
-    // identify the user without a separate auth header.
-    await fetch("/api/push/notify", {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch {
-    // Network offline or server error — silently ignore, will retry next tick.
-  }
-}
-
-// Re-start the polling loop when the SW is resumed after being idle.
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "PULSE_PING") {
-    scheduleReminderPoll();
-  }
 });
