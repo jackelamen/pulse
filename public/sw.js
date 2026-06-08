@@ -18,7 +18,7 @@
  * assets and the offline fallback are cached.
  */
 
-const CACHE_NAME = "pulse-shell-v4";
+const CACHE_NAME = "pulse-shell-v5";
 const SHELL_URLS = ["/offline.html", "/icons/pulse.svg"];
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
@@ -121,6 +121,12 @@ self.addEventListener("push", (event) => {
       badge: "/icons/pulse.svg",
       tag: taskId ? `pulse-task-${taskId}` : "pulse-reminder",
       renotify: true,
+      // Strong, attention-grabbing haptic pattern: long buzz, gap, long buzz,
+      // gap, long buzz (values are milliseconds, alternating vibrate/pause).
+      // The Web Vibration API controls timing/rhythm only — not raw motor
+      // intensity, which is governed by the OS and device settings.
+      vibrate: [400, 150, 400, 150, 400],
+      requireInteraction: true,
       data: { url },
     })
   );
