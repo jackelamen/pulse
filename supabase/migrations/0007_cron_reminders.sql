@@ -5,26 +5,26 @@
 -- Edge Function over HTTP (via pg_net). That function finds due reminders for
 -- ALL users and sends Web Push — so reminders fire even when Pulse is closed.
 --
--- Prerequisites (one-time, set in the Supabase dashboard or CLI):
---   * Edge Function `send-reminders` deployed.
+-- The function URL and the shared cron secret are read from Supabase Vault
+-- (vault.decrypted_secrets) rather than from database GUCs, because the Vault
+-- approach works without superuser/ALTER DATABASE privileges.
+--
+-- Prerequisites (one-time):
+--   * Edge Function `send-reminders` deployed (supabase functions deploy
+--     send-reminders --no-verify-jwt).
 --   * Function secrets set: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT,
---     CRON_SECRET.
---   * Two Postgres settings below must hold the project URL and the matching
---     CRON_SECRET so this migration can build the request. Set them once with:
---
---       ALTER DATABASE postgres
---         SET app.settings.edge_url = 'https://mdkyijbgvxedelcqcouu.supabase.co';
---       ALTER DATABASE postgres
---         SET app.settings.cron_secret = '<the-same-CRON_SECRET-value>';
---
---     (Run those two as the postgres/owner role, then reconnect so the GUCs
---     are visible. They are read at job-run time via current_setting().)
+--     CRON_SECRET. The CRON_SECRET value MUST equal the `pulse_cron_secret`
+--     Vault secret below.
+--   * Two Vault secrets created (already done in this project):
+--       select vault.create_secret(
+--         'https://mdkyijbgvxedelcqcouu.supabase.co', 'pulse_edge_url');
+--       select vault.create_secret(
+--         '<CRON_SECRET>', 'pulse_cron_secret');
 
--- ── Extensions ──────────────────────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- ── Unschedule any prior copy of this job (idempotent re-runs) ───────────────
+-- Unschedule any prior copy (idempotent re-runs).
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'pulse-send-reminders') THEN
@@ -33,19 +33,19 @@ BEGIN
 END;
 $$;
 
--- ── Schedule: every minute ──────────────────────────────────────────────────
--- pg_net's net.http_post returns immediately (async); the Edge Function does
--- the work. We pass the shared secret in a header so the function can reject
--- any caller that isn't us.
+-- Schedule: every minute. net.http_post returns immediately (async); the Edge
+-- Function does the work. The shared secret in the x-cron-secret header lets
+-- the function reject any caller that isn't this job.
 SELECT cron.schedule(
   'pulse-send-reminders',
   '* * * * *',
   $cron$
   SELECT net.http_post(
-    url     := current_setting('app.settings.edge_url') || '/functions/v1/send-reminders',
+    url     := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'pulse_edge_url')
+               || '/functions/v1/send-reminders',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'x-cron-secret', current_setting('app.settings.cron_secret')
+      'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'pulse_cron_secret')
     ),
     body    := '{}'::jsonb
   );

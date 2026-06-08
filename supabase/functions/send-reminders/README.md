@@ -46,21 +46,30 @@ supabase functions deploy send-reminders --no-verify-jwt
 `--no-verify-jwt` is required: the caller is pg_cron, not a logged-in user. The
 function does its own auth via the `x-cron-secret` header.
 
-### 5. Configure the two Postgres settings the cron job reads
+### 5. Vault secrets + cron migration — ALREADY APPLIED
 
-Run as the project owner (SQL editor or `psql`), using the SAME CRON_SECRET:
+These were applied directly to project `mdkyijbgvxedelcqcouu`:
+
+- Vault secret `pulse_edge_url` = `https://mdkyijbgvxedelcqcouu.supabase.co`
+- Vault secret `pulse_cron_secret` = the CRON_SECRET (generated value below)
+- Migration `0007_cron_reminders.sql` applied; job `pulse-send-reminders` is
+  scheduled every minute and active.
+
+The generated CRON_SECRET is: `191f15a9f243c148524daf35ca7a6c4d`
+
+You still need to set that SAME value as the function secret in step 3 and
+deploy in step 4 — until the function exists and shares this secret, the cron
+job will fire but get a connection error / 403.
+
+If you ever rotate the secret, update both places:
 
 ```sql
-ALTER DATABASE postgres
-  SET app.settings.edge_url = 'https://mdkyijbgvxedelcqcouu.supabase.co';
-ALTER DATABASE postgres
-  SET app.settings.cron_secret = '<the string from step 2>';
+select vault.update_secret(
+  (select id from vault.secrets where name = 'pulse_cron_secret'),
+  '<new-secret>');
 ```
-
-### 6. Apply the cron migration
-
 ```bash
-supabase db push     # applies migrations/0007_cron_reminders.sql
+supabase secrets set CRON_SECRET="<new-secret>"
 ```
 
 This enables `pg_cron` + `pg_net` and schedules `pulse-send-reminders` every

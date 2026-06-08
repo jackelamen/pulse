@@ -594,6 +594,7 @@ function ReminderPicker({
   const anchor = startAt ?? dueAt ?? null;
 
   const presets: Array<{ label: string; minutes: number }> = [
+    { label: "On time", minutes: 0 },
     { label: "15 min before", minutes: 15 },
     { label: "30 min before", minutes: 30 },
     { label: "1 hour before", minutes: 60 },
