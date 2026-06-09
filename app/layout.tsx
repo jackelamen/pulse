@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { ServiceWorkerRuntime } from "@/components/app-shell/service-worker-runtime";
 import { getPublicPulseEnv } from "@/lib/env";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -63,7 +64,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans">
-        <Providers>{children}</Providers>
+        <Providers>
+          <ServiceWorkerRuntime />
+          {children}
+        </Providers>
       </body>
     </html>
   );
