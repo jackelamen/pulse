@@ -120,6 +120,7 @@ export function makeQueuedTask(input: TaskInsert, localId?: string): Task {
     created_at: now,
     updated_at: now,
     deleted_at: null,
+    archived_at: null,
   };
 }
 

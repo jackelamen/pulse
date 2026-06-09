@@ -14,6 +14,7 @@ import {
   Repeat,
   Timer,
   ArchiveRestore,
+  Archive,
   BookOpenCheck,
   Layers,
   Search,
@@ -47,6 +48,7 @@ const PINNED: NavItem[] = [
   { href: "/anytime", label: "Anytime", icon: Layers },
   { href: "/someday", label: "Someday", icon: ArchiveRestore },
   { href: "/logbook", label: "Logbook", icon: BookOpenCheck },
+  { href: "/archive", label: "Archive", icon: Archive },
 ];
 
 const CALENDAR_ITEMS: NavItem[] = [
