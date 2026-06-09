@@ -92,6 +92,7 @@ export interface Database {
           google_event_id: string | null;
           google_synced_at: string | null;
           google_sync_state: GoogleSyncState;
+          archived_at: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -118,6 +119,7 @@ export interface Database {
           google_event_id?: string | null;
           google_synced_at?: string | null;
           google_sync_state?: GoogleSyncState;
+          archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;

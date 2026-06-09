@@ -43,9 +43,11 @@ type SyncTask = {
   title: string;
   notes: string | null;
   start_at: string | null;
+  due_at: string | null;
   duration_minutes: number | null;
   all_day: boolean;
   recurrence_rule: string | null;
+  recurrence_parent_id: string | null;
   google_event_id: string | null;
   google_sync_state: string;
 };
@@ -88,11 +90,37 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
   }
 }
 
-/** Map a Pulse task to a Google Calendar event resource. */
+/**
+ * Normalize a Pulse RRULE into the form Google's `recurrence` array wants:
+ * an array of strings each prefixed with "RRULE:". Pulse stores rules like
+ * "FREQ=WEEKLY;BYDAY=MO" (sometimes already prefixed). Returns undefined for
+ * an empty/blank rule.
+ */
+function toRecurrenceArray(rule: string | null): string[] | undefined {
+  if (!rule) return undefined;
+  const trimmed = rule.trim();
+  if (!trimmed) return undefined;
+  const withPrefix = trimmed.toUpperCase().startsWith("RRULE:")
+    ? trimmed
+    : `RRULE:${trimmed}`;
+  return [withPrefix];
+}
+
+/**
+ * Map a Pulse task to a Google Calendar event resource.
+ *
+ * Recurring templates: we send ONE event with a `recurrence` array; Google
+ * expands the series. The event's start/end define the FIRST occurrence and
+ * its time-of-day/duration. A recurring template may anchor on due_at when it
+ * has no start_at, so fall back to that for the anchor.
+ */
 function toGoogleEvent(task: SyncTask) {
+  const recurrence = toRecurrenceArray(task.recurrence_rule);
+  const anchorIso = task.start_at ?? task.due_at;
+
   // All-day → date-only start/end (end is exclusive next day).
-  if (task.all_day && task.start_at) {
-    const start = new Date(task.start_at);
+  if (task.all_day && anchorIso) {
+    const start = new Date(anchorIso);
     const startDate = start.toISOString().slice(0, 10);
     const endDate = new Date(start.getTime() + 24 * 60 * 60 * 1000)
       .toISOString()
@@ -102,10 +130,11 @@ function toGoogleEvent(task: SyncTask) {
       description: task.notes ?? undefined,
       start: { date: startDate },
       end: { date: endDate },
+      recurrence: recurrence ?? [],
     };
   }
 
-  const start = new Date(task.start_at!);
+  const start = new Date(anchorIso!);
   const durationMin = task.duration_minutes ?? DEFAULT_DURATION_MIN;
   const end = new Date(start.getTime() + durationMin * 60 * 1000);
   return {
@@ -113,6 +142,10 @@ function toGoogleEvent(task: SyncTask) {
     description: task.notes ?? undefined,
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
+    // Always send an explicit array (empty when not recurring) so a PATCH that
+    // removes a repeat actually clears recurrence on the Google event — an
+    // omitted field would leave the series intact.
+    recurrence: recurrence ?? [],
   };
 }
 
@@ -154,7 +187,7 @@ Deno.serve(async (req) => {
   const { data: rawTasks, error: taskErr } = await supabase
     .from("tasks")
     .select(
-      "id, user_id, title, notes, start_at, duration_minutes, all_day, recurrence_rule, google_event_id, google_sync_state",
+      "id, user_id, title, notes, start_at, due_at, duration_minutes, all_day, recurrence_rule, recurrence_parent_id, google_event_id, google_sync_state",
     )
     .in("google_sync_state", ["pending", "delete_pending"])
     .limit(200);
@@ -176,8 +209,10 @@ Deno.serve(async (req) => {
   let errored = 0;
 
   for (const task of tasks) {
-    // Defensive: never sync recurring tasks in v1.
-    if (task.recurrence_rule) {
+    // A materialized exception instance (single edited/completed occurrence) is
+    // already covered by its recurring series in Google — don't create a
+    // separate event for it. Clear the marker and move on.
+    if (task.recurrence_parent_id) {
       await supabase.from("tasks").update({ google_sync_state: "none" }).eq("id", task.id);
       skipped++;
       continue;
@@ -248,8 +283,10 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // pending: create or patch.
-      if (!task.start_at) {
+      // pending: create or patch. Anchor is start_at, or due_at for a
+      // recurring template that only carries a due date.
+      const anchorIso = task.start_at ?? (task.recurrence_rule ? task.due_at : null);
+      if (!anchorIso) {
         // Unscheduled but marked pending — nothing to create. Clear it.
         await supabase.from("tasks").update({ google_sync_state: "none" }).eq("id", task.id);
         processed++;
