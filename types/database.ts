@@ -16,6 +16,7 @@ export type Json =
 export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
 export type Priority = 0 | 1 | 2 | 3;
 export type ListViewMode = "list" | "board" | "timeline";
+export type GoogleSyncState = "none" | "pending" | "synced" | "delete_pending" | "error";
 export type FocusMode = "pomodoro" | "flow" | "custom";
 export type HabitCadence = "daily" | "weekdays" | "weekly" | "custom";
 type AnyRecord = Record<string, unknown>;
@@ -88,6 +89,9 @@ export interface Database {
           reminder_at: string | null;
           sort_order: number;
           tags: string[];
+          google_event_id: string | null;
+          google_synced_at: string | null;
+          google_sync_state: GoogleSyncState;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -111,11 +115,42 @@ export interface Database {
           reminder_at?: string | null;
           sort_order?: number;
           tags?: string[];
+          google_event_id?: string | null;
+          google_synced_at?: string | null;
+          google_sync_state?: GoogleSyncState;
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
         } & AnyRecord;
         Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]> & AnyRecord;
+        Relationships: [];
+      };
+      google_accounts: {
+        Row: {
+          user_id: string;
+          google_email: string | null;
+          refresh_token: string;
+          access_token: string | null;
+          access_expires_at: string | null;
+          target_calendar_id: string;
+          sync_enabled: boolean;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        } & AnyRecord;
+        Insert: {
+          user_id: string;
+          google_email?: string | null;
+          refresh_token: string;
+          access_token?: string | null;
+          access_expires_at?: string | null;
+          target_calendar_id?: string;
+          sync_enabled?: boolean;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        } & AnyRecord;
+        Update: Partial<Database["public"]["Tables"]["google_accounts"]["Insert"]> & AnyRecord;
         Relationships: [];
       };
       folders: {

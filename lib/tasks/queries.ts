@@ -17,6 +17,31 @@ function isTaskLike(value: unknown): value is Task {
 }
 
 /* ------------------------------------------------------------------ */
+/* Google Calendar sync marking (one-way, Pulse -> Google)             */
+/*                                                                      */
+/* These helpers only set the google_sync_state column so the          */
+/* server-side push-to-google Edge Function can pick the row up. They   */
+/* never call Google directly — the save stays fast and offline-safe.  */
+/* Recurring tasks are out of scope for v1, so a recurrence_rule means  */
+/* "do not sync". Over-marking delete_pending is harmless: the Edge     */
+/* Function skips delete_pending rows that have no google_event_id.     */
+/* ------------------------------------------------------------------ */
+
+type SyncableWrite = {
+  start_at?: string | null;
+  recurrence_rule?: string | null;
+};
+
+/** Sync state for a create/update that carries scheduling fields. */
+function syncStateForWrite(write: SyncableWrite): "pending" | "delete_pending" | undefined {
+  // recurrence_rule present and non-null → never sync in v1.
+  if ("recurrence_rule" in write && write.recurrence_rule) return undefined;
+  if (!("start_at" in write)) return undefined; // write doesn't touch scheduling
+  // Scheduled → push; unscheduled (start_at cleared) → remove from Google.
+  return write.start_at ? "pending" : "delete_pending";
+}
+
+/* ------------------------------------------------------------------ */
 /* Query keys                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -251,9 +276,11 @@ export function useCreateTask() {
         return queueTaskCreate(input);
       }
       // user_id defaults to auth.uid() at the DB level; RLS enforces.
+      const syncState = syncStateForWrite(input as SyncableWrite);
+      const insert = syncState ? { ...input, google_sync_state: syncState } : input;
       const { data, error } = await supabase()
         .from("tasks")
-        .insert(input)
+        .insert(insert)
         .select()
         .single();
       if (error) throw error;
@@ -273,6 +300,16 @@ export function useToggleComplete() {
       const patch = completing
         ? { completed_at: new Date().toISOString(), status: "done" as const }
         : { completed_at: null, status: "todo" as const };
+
+      // Completing a synced task removes it from Google; un-completing a
+      // scheduled, non-recurring task re-pushes it.
+      const syncPatch: { google_sync_state?: "pending" | "delete_pending" } = {};
+      if (completing) {
+        if (task.google_event_id) syncPatch.google_sync_state = "delete_pending";
+      } else if (task.start_at && !task.recurrence_rule) {
+        syncPatch.google_sync_state = "pending";
+      }
+      Object.assign(patch, syncPatch);
 
       if (isOffline()) {
         // Optimistic cache already updated in onMutate; queue the server write.
@@ -334,9 +371,11 @@ export function useUpdateTask() {
         }
         return { id, ...patch } as unknown as Task;
       }
+      const syncState = syncStateForWrite(patch as SyncableWrite);
+      const update = syncState ? { ...patch, google_sync_state: syncState } : patch;
       const { data, error } = await supabase()
         .from("tasks")
-        .update(patch)
+        .update(update)
         .eq("id", id)
         .select()
         .single();
@@ -357,10 +396,11 @@ export function useDeleteTask() {
         queueTaskDelete(id);
         return id;
       }
-      // Soft-delete so undo and logbook are possible.
+      // Soft-delete so undo and logbook are possible. Mark for Google removal;
+      // the Edge Function skips rows that never had a google_event_id.
       const { error } = await supabase()
         .from("tasks")
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toISOString(), google_sync_state: "delete_pending" })
         .eq("id", id);
       if (error) throw error;
       return id;

@@ -1,10 +1,15 @@
 "use client";
 
-import { Download, Keyboard, Save } from "lucide-react";
+import { CalendarCheck2, Download, Keyboard, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useUpdateUserProfile, useUserProfile } from "@/lib/profile/queries";
 import { useUpdateUserSettings, useUserSettings } from "@/lib/settings/queries";
+import {
+  useDisconnectGoogle,
+  useGoogleAccount,
+  useSetGoogleSyncEnabled,
+} from "@/lib/google/queries";
 import { SIDEBAR_THEMES, sidebarThemeValue } from "@/lib/settings/sidebar-themes";
 import { useUi } from "@/lib/ui/store";
 import { cn } from "@/lib/utils";
@@ -23,6 +28,10 @@ export function SettingsClient() {
   const update = useUpdateUserSettings();
   const updateProfile = useUpdateUserProfile();
   const setShortcutsOpen = useUi((s) => s.setShortcutsOpen);
+  const google = useGoogleAccount();
+  const setGoogleSync = useSetGoogleSyncEnabled();
+  const disconnectGoogle = useDisconnectGoogle();
+  const [googleNotice, setGoogleNotice] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -37,6 +46,23 @@ export function SettingsClient() {
     setFirstName(profile.data.firstName);
     setLastName(profile.data.lastName);
   }, [profile.data]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const status = new URLSearchParams(window.location.search).get("google");
+    if (!status) return;
+    const messages: Record<string, string> = {
+      connected: "Google Calendar connected. Scheduled tasks will sync.",
+      denied: "Google connection cancelled.",
+      no_refresh_token: "Google did not return a refresh token. Try connecting again.",
+      exchange_failed: "Could not complete the Google connection. Try again.",
+      save_failed: "Connected to Google but failed to save. Try again.",
+      misconfigured: "Google sync is not configured on the server yet.",
+    };
+    setGoogleNotice(messages[status] ?? null);
+    // Clean the URL so the notice doesn't persist on refresh.
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
 
   if (settings.isLoading || profile.isLoading || !data) {
     return <div className="px-1 py-6 text-sm text-muted-foreground">Loading settings...</div>;
@@ -98,6 +124,77 @@ export function SettingsClient() {
             Signed in as {profile.data?.email ?? "unknown account"}
           </span>
         </div>
+      </section>
+
+      <section className="pulse-pane p-5">
+        <h2 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <CalendarCheck2 className="h-3.5 w-3.5" />
+          Google Calendar
+        </h2>
+
+        {googleNotice && (
+          <p className="mb-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-foreground">
+            {googleNotice}
+          </p>
+        )}
+
+        {google.isLoading ? (
+          <p className="text-sm text-muted-foreground">Checking connection...</p>
+        ) : google.data?.connected ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Connected as{" "}
+              <span className="font-medium text-foreground">
+                {google.data.email ?? "your Google account"}
+              </span>
+              . Scheduled tasks sync one-way into Google Calendar.
+            </p>
+
+            {google.data.lastError && (
+              <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                Last sync error: {google.data.lastError}
+              </p>
+            )}
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={google.data.syncEnabled}
+                onChange={(e) => setGoogleSync.mutate(e.target.checked)}
+                disabled={setGoogleSync.isPending}
+              />
+              <span>Sync enabled</span>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => disconnectGoogle.mutate()}
+                disabled={disconnectGoogle.isPending}
+              >
+                {disconnectGoogle.isPending ? "Disconnecting" : "Disconnect"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Disconnecting stops future sync. Events already created stay in Google.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Push your scheduled Pulse tasks into Google Calendar automatically.
+              One-way: Pulse stays the source of truth.
+            </p>
+            <a
+              href="/auth/google"
+              className={buttonVariants({ size: "sm" })}
+            >
+              Connect Google Calendar
+            </a>
+          </div>
+        )}
       </section>
 
       <section className="pulse-pane p-5">
