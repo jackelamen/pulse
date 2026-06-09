@@ -22,6 +22,7 @@ export function SidebarTags() {
         .from("tasks")
         .select("tags")
         .is("deleted_at", null)
+        .is("archived_at", null)
         .is("parent_task_id", null);
       const map: Record<string, number> = {};
       const rows = (data ?? []) as Array<{ tags: string[] | null }>;
@@ -33,14 +34,17 @@ export function SidebarTags() {
   }, []);
 
   const rows = useMemo(() => {
-    const known = new Set(Object.keys(counts));
-    for (const tag of tags.data ?? []) known.add(tag.name);
-    return Array.from(known)
+    // Only show tags that have at least one active (non-archived, non-deleted)
+    // task. `counts` is already built from active tasks only, so a tag whose
+    // tasks are all archived has no entry here and is omitted — even if it
+    // still exists in the tags registry.
+    return Object.keys(counts)
       .map((name) => ({
         name,
         explicitColor: tags.data?.find((tag) => tag.name === name)?.color ?? null,
         count: counts[name] ?? 0,
       }))
+      .filter((row) => row.count > 0)
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [counts, tags.data]);
 
