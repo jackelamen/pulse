@@ -35,7 +35,12 @@ export async function GET(request: Request) {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "https://www.googleapis.com/auth/calendar.events",
+    // calendar.events = create/update/delete events.
+    // calendar.calendarlist.readonly = enumerate the user's calendars so the
+    // Settings picker can list more than just primary.
+    scope:
+      "https://www.googleapis.com/auth/calendar.events " +
+      "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
     access_type: "offline",
     // Force a consent prompt so Google reliably returns a refresh token even on
     // a re-link (it otherwise omits it after the first grant).
