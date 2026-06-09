@@ -34,6 +34,8 @@ import { formatDateLong } from "@/lib/utils";
 import type { Task } from "@/lib/tasks/types";
 import type { Habit } from "@/lib/habits/types";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { tagColor } from "@/lib/lists/tag-colors";
 
 type TodayHeaderState = {
   dateLabel: string;
@@ -271,6 +273,7 @@ function PriorityPanel({
   projectNames: Map<string, string>;
 }) {
   const toggle = useToggleComplete();
+  const openTask = useUi((s) => s.openTask);
 
   return (
     <section className="pulse-pane overflow-hidden">
@@ -304,8 +307,28 @@ function PriorityPanel({
                   aria-label={`Complete ${task.title}`}
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="text-base font-semibold leading-snug text-foreground">{task.title}</div>
-                  {task.tags?.[0] && <div className="mt-1 text-xs text-muted-foreground">#{task.tags[0]}</div>}
+                  <button
+                    type="button"
+                    onClick={() => openTask(task.id)}
+                    className="block text-left text-base font-semibold leading-snug text-foreground hover:underline"
+                  >
+                    {task.title}
+                  </button>
+                  {task.tags && task.tags.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {task.tags.map((name) => (
+                        <Link
+                          key={name}
+                          href={`/tags/${encodeURIComponent(name)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: tagColor(name) }}
+                        >
+                          #{name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
