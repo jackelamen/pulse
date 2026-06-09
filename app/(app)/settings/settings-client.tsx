@@ -8,7 +8,10 @@ import { useUpdateUserSettings, useUserSettings } from "@/lib/settings/queries";
 import {
   useDisconnectGoogle,
   useGoogleAccount,
+  useGoogleCalendars,
   useSetGoogleSyncEnabled,
+  useSetTargetCalendar,
+  useSyncGoogleNow,
 } from "@/lib/google/queries";
 import { SIDEBAR_THEMES, sidebarThemeValue } from "@/lib/settings/sidebar-themes";
 import { useUi } from "@/lib/ui/store";
@@ -31,6 +34,9 @@ export function SettingsClient() {
   const google = useGoogleAccount();
   const setGoogleSync = useSetGoogleSyncEnabled();
   const disconnectGoogle = useDisconnectGoogle();
+  const syncNow = useSyncGoogleNow();
+  const setTargetCalendar = useSetTargetCalendar();
+  const calendars = useGoogleCalendars(!!google.data?.connected);
   const [googleNotice, setGoogleNotice] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -165,6 +171,54 @@ export function SettingsClient() {
               />
               <span>Sync enabled</span>
             </label>
+
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Target calendar</span>
+              <select
+                className="w-full max-w-sm rounded-md border border-border bg-card px-3 py-2 text-sm"
+                value={google.data.targetCalendarId}
+                disabled={calendars.isLoading || setTargetCalendar.isPending}
+                onChange={(e) => setTargetCalendar.mutate(e.target.value)}
+              >
+                {/* Always offer primary; merge in the fetched list. */}
+                {calendars.data && calendars.data.length > 0 ? (
+                  calendars.data.map((c) => (
+                    <option key={c.id} value={c.primary ? "primary" : c.id}>
+                      {c.summary}
+                      {c.primary ? " (primary)" : ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value={google.data.targetCalendarId}>
+                    {calendars.isLoading ? "Loading calendars..." : "Primary calendar"}
+                  </option>
+                )}
+              </select>
+              {calendars.isError && (
+                <span className="block text-xs text-muted-foreground">
+                  Could not load your calendar list. Syncing to the saved calendar.
+                </span>
+              )}
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => syncNow.mutate()}
+                disabled={syncNow.isPending}
+              >
+                {syncNow.isPending ? "Syncing" : "Sync now"}
+              </Button>
+              {syncNow.isSuccess && (
+                <span className="text-xs text-muted-foreground">Sync triggered.</span>
+              )}
+              {syncNow.isError && (
+                <span className="text-xs text-destructive">
+                  {(syncNow.error as Error)?.message ?? "Sync failed"}
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <Button

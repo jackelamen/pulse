@@ -7,6 +7,13 @@ const supabase = () => createClient();
 
 export const googleKeys = {
   account: ["google_account"] as const,
+  calendars: ["google_calendars"] as const,
+};
+
+export type GoogleCalendar = {
+  id: string;
+  summary: string;
+  primary: boolean;
 };
 
 export type GoogleAccountStatus = {
@@ -97,6 +104,56 @@ export function useDisconnectGoogle() {
       const { error } = await supabase()
         .from("google_accounts")
         .delete()
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: googleKeys.account }),
+  });
+}
+
+/** "Sync now" — kick the server route that invokes the push-to-google function. */
+export function useSyncGoogleNow() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/google/sync", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Sync failed");
+      }
+      return res.json() as Promise<{ ok: boolean; result?: unknown }>;
+    },
+  });
+}
+
+/** List the user's writable Google calendars for the picker. */
+export function useGoogleCalendars(enabled: boolean) {
+  return useQuery<GoogleCalendar[]>({
+    queryKey: googleKeys.calendars,
+    enabled,
+    queryFn: async () => {
+      const res = await fetch("/api/google/calendars");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Could not list calendars");
+      }
+      const data = (await res.json()) as { calendars: GoogleCalendar[] };
+      return data.calendars;
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Save which calendar tasks should sync to. */
+export function useSetTargetCalendar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (calendarId: string) => {
+      const { data: userData } = await supabase().auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("Not signed in");
+      const { error } = await supabase()
+        .from("google_accounts")
+        .update({ target_calendar_id: calendarId })
         .eq("user_id", userId);
       if (error) throw error;
     },
