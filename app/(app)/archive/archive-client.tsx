@@ -224,7 +224,7 @@ function ArchivedRow({
               #{tag}
             </span>
           ))}
-          {task.archived_at && (
+          {typeof task.archived_at === "string" && (
             <span>Archived {dayLabel(new Date(task.archived_at), new Date())}</span>
           )}
         </div>

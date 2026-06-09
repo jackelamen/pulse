@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell } from "lucide-react";
+import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +10,7 @@ import {
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
+  useArchiveTask,
   useMaterializeException,
   useSubtasks,
   useToggleComplete,
@@ -64,6 +65,7 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
   const toggleComplete = useToggleComplete();
   const materialize = useMaterializeException();
   const remove = useDeleteTask();
+  const archive = useArchiveTask();
 
   const [draft, setDraft] = useState<Partial<Task>>({});
   const [checklistTitle, setChecklistTitle] = useState("");
@@ -118,7 +120,22 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
         <span className="text-xs text-muted-foreground">
           {virtual ? "Recurrence instance" : "Task"}
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          {!virtual && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={archive.isPending}
+              onClick={async () => {
+                await archive.mutateAsync(templateId);
+                onClose();
+              }}
+              aria-label="Archive"
+              title="Archive task"
+            >
+              <Archive className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
