@@ -60,9 +60,10 @@ export function HabitsClient() {
   const logs = useLast90HabitLogs();
   const allLogs = logs.data ?? [];
   const allHabits = useMemo(() => habits.data ?? [], [habits.data]);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const dueToday = useMemo(
-    () => allHabits.filter((habit) => isHabitDueOn(habit, new Date())),
-    [allHabits]
+    () => allHabits.filter((habit) => isHabitDueOn(habit, selectedDate)),
+    [allHabits, selectedDate]
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const requestedHabitId = searchParams.get("habit");
@@ -82,7 +83,12 @@ export function HabitsClient() {
       {allHabits.length === 0 ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.85fr)_minmax(0,1.15fr)]">
           <div className="space-y-5">
-            <HabitWeekStrip habits={allHabits} logs={allLogs} />
+            <HabitWeekStrip
+              habits={allHabits}
+              logs={allLogs}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+            />
             <NewHabitForm />
           </div>
           <div className="pulse-pane flex min-h-[28rem] items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
@@ -92,11 +98,17 @@ export function HabitsClient() {
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
           <div className="space-y-5">
-            <HabitWeekStrip habits={allHabits} logs={allLogs} />
+            <HabitWeekStrip
+              habits={allHabits}
+              logs={allLogs}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+            />
             <HabitListPanel
               habits={allHabits}
               dueToday={dueToday}
               logs={allLogs}
+              selectedDate={selectedDate}
               selectedId={selectedHabit?.id ?? null}
               onSelect={setSelectedId}
             />
@@ -107,6 +119,7 @@ export function HabitsClient() {
             <HabitDetailPanel
               habit={selectedHabit}
               logs={allLogs.filter((log) => log.habit_id === selectedHabit.id)}
+              selectedDate={selectedDate}
             />
           )}
         </div>
@@ -115,9 +128,21 @@ export function HabitsClient() {
   );
 }
 
-function HabitWeekStrip({ habits, logs }: { habits: Habit[]; logs: HabitLog[] }) {
+function HabitWeekStrip({
+  habits,
+  logs,
+  selectedDate,
+  onSelectDate,
+}: {
+  habits: Habit[];
+  logs: HabitLog[];
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void;
+}) {
   const today = startOfDay(new Date());
-  const days = Array.from({ length: 7 }).map((_, i) => addDays(today, i - 3));
+  // Anchor the 7-day window on the selected date so you can page back in time.
+  const anchor = startOfDay(selectedDate);
+  const days = Array.from({ length: 7 }).map((_, i) => addDays(anchor, i - 3));
 
   return (
     <section className="pulse-pane px-4 py-4">
@@ -130,20 +155,30 @@ function HabitWeekStrip({ habits, logs }: { habits: Habit[]; logs: HabitLog[] })
           ).length;
           const ratio = due === 0 ? 0 : Math.round((done / due) * 100);
           const isToday = isSameDate(day, today);
+          const isSelected = isSameDate(day, anchor);
+          const isFuture = day.getTime() > today.getTime();
           return (
-            <div
+            <button
               key={key}
+              type="button"
+              disabled={isFuture}
+              onClick={() => onSelectDate(startOfDay(day))}
+              aria-pressed={isSelected}
+              aria-label={`Select ${day.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}`}
               className={cn(
-                "flex min-h-24 flex-col items-center justify-center rounded-2xl border px-2 py-3 text-center",
-                isToday
-                  ? "border-primary/25 bg-primary/10 text-foreground"
-                  : "border-transparent bg-transparent text-muted-foreground"
+                "flex min-h-24 flex-col items-center justify-center rounded-2xl border px-2 py-3 text-center transition-colors",
+                isSelected
+                  ? "border-primary/60 bg-primary/15 text-foreground shadow-[0_10px_24px_rgba(20,24,45,0.08)]"
+                  : isToday
+                    ? "border-primary/25 bg-primary/5 text-foreground hover:bg-primary/10"
+                    : "border-transparent bg-transparent text-muted-foreground hover:bg-muted/40",
+                isFuture && "cursor-not-allowed opacity-40 hover:bg-transparent"
               )}
             >
               <div className="text-xs font-semibold">{day.toLocaleDateString(undefined, { weekday: "short" })}</div>
               <div className="mt-1 text-lg font-semibold">{day.getDate()}</div>
-              <ProgressDot ratio={ratio} color={isToday ? "#304078" : "#64748b"} muted={due === 0} />
-            </div>
+              <ProgressDot ratio={ratio} color={isSelected || isToday ? "#304078" : "#64748b"} muted={due === 0} />
+            </button>
           );
         })}
       </div>
@@ -220,47 +255,56 @@ function HabitListPanel({
   habits,
   dueToday,
   logs,
+  selectedDate,
   selectedId,
   onSelect,
 }: {
   habits: Habit[];
   dueToday: Habit[];
   logs: HabitLog[];
+  selectedDate: Date;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   const otherHabits = habits.filter((habit) => !dueToday.some((due) => due.id === habit.id));
+  const isToday = isSameDate(selectedDate, startOfDay(new Date()));
+  const dueWord = isToday ? "due today" : "due";
+  const heading = isToday
+    ? "Today's habits"
+    : selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 
   return (
     <section className="pulse-pane overflow-hidden">
       <div className="border-b border-border/70 px-5 py-4">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-semibold">Today&apos;s habits</h2>
+            <h2 className="font-display text-xl font-semibold">{heading}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {dueToday.length} due today · {habits.length} total routines
+              {dueToday.length} {dueWord} · {habits.length} total routines
             </p>
           </div>
           <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            {completionCount(dueToday, logs)}/{dueToday.length}
+            {completionCount(dueToday, logs, selectedDate)}/{dueToday.length}
           </div>
         </div>
       </div>
 
       <div className="space-y-5 px-4 py-4">
         <HabitGroup
-          title="Due today"
+          title={isToday ? "Due today" : "Due"}
           habits={dueToday}
           logs={logs}
+          selectedDate={selectedDate}
           selectedId={selectedId}
           onSelect={onSelect}
-          empty="No routines due today."
+          empty={isToday ? "No routines due today." : "No routines due on this day."}
         />
         {otherHabits.length > 0 && (
           <HabitGroup
             title="Other routines"
             habits={otherHabits}
             logs={logs}
+            selectedDate={selectedDate}
             selectedId={selectedId}
             onSelect={onSelect}
           />
@@ -274,6 +318,7 @@ function HabitGroup({
   title,
   habits,
   logs,
+  selectedDate,
   selectedId,
   onSelect,
   empty,
@@ -281,6 +326,7 @@ function HabitGroup({
   title: string;
   habits: Habit[];
   logs: HabitLog[];
+  selectedDate: Date;
   selectedId: string | null;
   onSelect: (id: string) => void;
   empty?: string;
@@ -300,6 +346,7 @@ function HabitGroup({
               key={habit.id}
               habit={habit}
               logs={logs.filter((log) => log.habit_id === habit.id)}
+              selectedDate={selectedDate}
               selected={selectedId === habit.id}
               onSelect={() => onSelect(habit.id)}
             />
@@ -313,16 +360,18 @@ function HabitGroup({
 function HabitListItem({
   habit,
   logs,
+  selectedDate,
   selected,
   onSelect,
 }: {
   habit: Habit;
   logs: HabitLog[];
+  selectedDate: Date;
   selected: boolean;
   onSelect: () => void;
 }) {
   const toggle = useToggleHabitLog();
-  const todayDone = completionMap(logs).has(localDateKey(new Date()));
+  const todayDone = completionMap(logs).has(localDateKey(selectedDate));
   const color = habit.color || "#10b981";
   const Icon = habitIcon(habit);
   const streak = currentStreak(habit, logs);
@@ -339,7 +388,7 @@ function HabitListItem({
       >
         <button
           type="button"
-          onClick={() => toggle.mutate({ habitId: habit.id })}
+          onClick={() => toggle.mutate({ habitId: habit.id, date: selectedDate })}
           disabled={toggle.isPending}
           className={cn(
             "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
@@ -426,13 +475,21 @@ function DayPicker({ days, onChange }: { days: number[]; onChange: (days: number
   );
 }
 
-function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
+function HabitDetailPanel({
+  habit,
+  logs,
+  selectedDate,
+}: {
+  habit: Habit;
+  logs: HabitLog[];
+  selectedDate: Date;
+}) {
   const update = useUpdateHabit();
   const archive = useArchiveHabit();
   const toggle = useToggleHabitLog();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(habit.name);
-  const todayDone = completionMap(logs).has(localDateKey(new Date()));
+  const todayDone = completionMap(logs).has(localDateKey(selectedDate));
   const color = habit.color || "#10b981";
   const Icon = habitIcon(habit);
   const stats = useMemo(
@@ -465,7 +522,7 @@ function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
           </div>
           <button
             type="button"
-            onClick={() => toggle.mutate({ habitId: habit.id })}
+            onClick={() => toggle.mutate({ habitId: habit.id, date: selectedDate })}
             className={cn(
               "grid h-9 w-9 place-items-center rounded-full border transition-colors",
               todayDone ? "border-transparent text-white" : "border-muted bg-muted/70 text-muted-foreground"
@@ -633,9 +690,8 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function completionCount(habits: Habit[], logs: HabitLog[]) {
-  const today = new Date();
-  return habits.filter((habit) => isHabitDueOn(habit, today) && isHabitLoggedOn(habit.id, today, logs)).length;
+function completionCount(habits: Habit[], logs: HabitLog[], date: Date = new Date()) {
+  return habits.filter((habit) => isHabitDueOn(habit, date) && isHabitLoggedOn(habit.id, date, logs)).length;
 }
 
 function isHabitLoggedOn(habitId: string, date: Date, logs: HabitLog[]) {
