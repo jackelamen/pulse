@@ -87,6 +87,7 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
   const path = usePathname();
   const queryClient = useQueryClient();
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
+  const openQuickAdd = useUi((s) => s.openQuickAdd);
   const [refreshing, setRefreshing] = useState(false);
   const mode = modeForPath(path);
   const label = name || email || "Not signed in";
@@ -176,9 +177,9 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
         </div>
         <button
           type="button"
-          onClick={() => setPaletteOpen(true)}
+          onClick={() => openQuickAdd()}
           className="ml-auto grid h-9 w-9 place-items-center rounded-xl bg-card text-muted-foreground shadow-[0_6px_18px_rgba(20,24,45,0.08)] hover:text-foreground dark:border dark:border-border"
-          aria-label="New item"
+          aria-label="New task"
         >
           <Plus className="h-5 w-5" />
         </button>
