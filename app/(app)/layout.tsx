@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { MobileTabBar } from "@/components/app-shell/mobile-tabbar";
@@ -6,6 +7,7 @@ import { ShortcutsOverlay } from "@/components/app-shell/shortcuts-overlay";
 import { QuickAddOverlay } from "@/components/tasks/quick-add-overlay";
 import { CommandPalette } from "@/components/app-shell/command-palette";
 import { TaskDetail } from "@/components/tasks/task-detail";
+import { TaskDeepLink } from "@/components/app-shell/task-deep-link";
 import { PwaRuntime } from "@/components/app-shell/pwa-runtime";
 import { SettingsRuntime } from "@/components/app-shell/settings-runtime";
 import { PulseWorkBridge } from "@/components/app-shell/pulse-work-bridge";
@@ -50,6 +52,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <QuickAddOverlay />
       <CommandPalette />
       <TaskDetail />
+      <Suspense fallback={null}>
+        <TaskDeepLink />
+      </Suspense>
       <PwaRuntime />
       <SettingsRuntime />
       <PulseWorkBridge />
