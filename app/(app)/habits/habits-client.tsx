@@ -538,7 +538,8 @@ function HabitDetailPanel({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
             </h3>
             <span className="text-xs font-medium text-muted-foreground">{stats.rate}% this month</span>
           </div>
-          <Heatmap habit={habit} logs={logs} />
+          <Heatmap habit={habit} logs={logs} onToggle={(date) => toggle.mutate({ habitId: habit.id, date })} />
+          <p className="mt-2 text-[11px] text-muted-foreground">Tap any day to mark it complete or clear it.</p>
         </div>
       </div>
     </article>
@@ -573,7 +574,15 @@ function ProgressRing({ value, color }: { value: number; color: string }) {
   );
 }
 
-function Heatmap({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
+function Heatmap({
+  habit,
+  logs,
+  onToggle,
+}: {
+  habit: Habit;
+  logs: HabitLog[];
+  onToggle?: (date: Date) => void;
+}) {
   const today = startOfDay(new Date());
   const done = completionMap(logs);
   const days = Array.from({ length: 90 }).map((_, i) => addDays(today, i - 89));
@@ -583,19 +592,30 @@ function Heatmap({ habit, logs }: { habit: Habit; logs: HabitLog[] }) {
         const key = localDateKey(day);
         const due = isHabitDueOn(habit, day);
         const complete = (done.get(key) ?? 0) > 0;
-        return (
-          <div
-            key={key}
-            title={`${key}${complete ? " logged" : ""}`}
-            className={cn(
-              "aspect-square rounded-[3px]",
-              !due && "bg-transparent",
-              due && !complete && "bg-muted",
-              complete && "bg-emerald-500"
-            )}
-            style={complete && habit.color ? { backgroundColor: habit.color } : undefined}
-          />
+        const clickable = due && !!onToggle;
+        const className = cn(
+          "aspect-square rounded-[3px]",
+          !due && "bg-transparent",
+          due && !complete && "bg-muted",
+          complete && "bg-emerald-500",
+          clickable && "cursor-pointer transition-transform hover:ring-2 hover:ring-primary/40 hover:brightness-105"
         );
+        const style = complete && habit.color ? { backgroundColor: habit.color } : undefined;
+        const title = `${key}${complete ? " · logged (tap to clear)" : due ? " · tap to mark complete" : ""}`;
+        if (clickable) {
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onToggle?.(day)}
+              title={title}
+              aria-label={title}
+              className={className}
+              style={style}
+            />
+          );
+        }
+        return <div key={key} title={title} className={className} style={style} />;
       })}
     </div>
   );
