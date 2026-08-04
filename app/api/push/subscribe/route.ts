@@ -21,6 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
 
+  // NOTE: the live table's only unique constraint is UNIQUE (endpoint) — there is
+  // no (user_id, endpoint) constraint, so conflicting on that pair fails with
+  // Postgres 42P10 and 500s. An endpoint is globally unique to one browser
+  // instance anyway, so conflicting on `endpoint` is the correct behaviour: a
+  // re-subscribe (or a different user signing in on that device) updates the
+  // existing row rather than creating a duplicate.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("push_subscriptions") as any).upsert(
     {
@@ -29,12 +35,15 @@ export async function POST(request: Request) {
       p256dh: keys.p256dh,
       auth: keys.auth,
     },
-    { onConflict: "user_id,endpoint" }
+    { onConflict: "endpoint" }
   );
 
   if (error) {
     console.error("[push/subscribe]", error);
-    return NextResponse.json({ error: "Failed to save subscription" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to save subscription", detail: error.message, code: error.code },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true });
