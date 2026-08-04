@@ -50,17 +50,61 @@ const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:jack@theedgex.com";
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
+// ── VAPID key conversion ─────────────────────────────────────────────────────
+//
+// `web-push` (npm) emits VAPID keys as RAW base64url strings:
+//   public  = 65 bytes, uncompressed P-256 point: 0x04 || X(32) || Y(32)
+//   private = 32 bytes, the scalar `d`
+//
+// `@negrel/webpush`'s importVapidKeys() expects JWK objects (the output of its
+// own exportVapidKeys()), NOT raw strings. Passing the raw strings throws and
+// — because this is only reached when a reminder is actually due — that
+// exception used to escape as an uncaught 500, leaving reminder_at uncleared so
+// the same task re-crashed the function every minute. Convert explicitly.
+
+function b64urlToBytes(s: string): Uint8Array {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+function bytesToB64url(bytes: Uint8Array): string {
+  const bin = String.fromCharCode(...bytes);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Deliberately omit `key_ops`/`ext`: if present they must agree with the usages
+// the library requests on importKey, and omitting them imposes no constraint.
+function rawVapidToJwk(publicRaw: string, privateRaw: string) {
+  const pub = b64urlToBytes(publicRaw);
+  if (pub.length !== 65 || pub[0] !== 0x04) {
+    throw new Error(
+      `VAPID_PUBLIC_KEY must be a 65-byte uncompressed P-256 point (got ${pub.length} bytes, first byte 0x${pub[0]?.toString(16)})`,
+    );
+  }
+  const x = bytesToB64url(pub.slice(1, 33));
+  const y = bytesToB64url(pub.slice(33, 65));
+
+  const priv = b64urlToBytes(privateRaw);
+  if (priv.length !== 32) {
+    throw new Error(`VAPID_PRIVATE_KEY must be 32 bytes (got ${priv.length})`);
+  }
+  const d = bytesToB64url(priv);
+
+  return {
+    publicKey: { kty: "EC", crv: "P-256", x, y },
+    privateKey: { kty: "EC", crv: "P-256", x, y, d },
+  };
+}
+
 // Build the application server (VAPID) once at cold start.
 async function buildAppServer() {
-  // @negrel/webpush expects the VAPID keys as a JWK pair. We import the raw
-  // base64url keys the `web-push` npm tool generated.
-  const vapidKeys = await webpush.importVapidKeys(
-    {
-      publicKey: VAPID_PUBLIC,
-      privateKey: VAPID_PRIVATE,
-    },
-    { extractable: false },
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exported = rawVapidToJwk(VAPID_PUBLIC, VAPID_PRIVATE) as any;
+  const vapidKeys = await webpush.importVapidKeys(exported, {
+    extractable: false,
+  });
   return await webpush.ApplicationServer.new({
     contactInformation: VAPID_SUBJECT,
     vapidKeys,
@@ -108,7 +152,20 @@ Deno.serve(async (req) => {
     });
   }
 
-  const appServer = await buildAppServer();
+  let appServer;
+  try {
+    appServer = await buildAppServer();
+  } catch (err) {
+    // Surface the reason instead of letting it escape as an opaque 500.
+    console.error("[send-reminders] VAPID setup failed:", err);
+    return new Response(
+      JSON.stringify({
+        error: "VAPID setup failed",
+        detail: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 500, headers: { "content-type": "application/json" } },
+    );
+  }
 
   // Cache subscriptions per user so we don't re-query for users with many
   // simultaneously-due tasks.
