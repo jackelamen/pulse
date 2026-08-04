@@ -173,6 +173,17 @@ Deno.serve(async (req) => {
   const staleEndpoints: string[] = [];
   let fired = 0;
 
+  // Which due tasks are safe to clear reminder_at for. A task is safe to
+  // clear once nothing about it is worth retrying: either a push actually
+  // went out, the user has no subscriptions to try, or every attempt failed
+  // permanently (404/410 - the endpoint is gone, retrying won't help). If a
+  // push attempt failed for a transient reason (network blip, 5xx from the
+  // push service, etc.) with no successful delivery, we leave reminder_at
+  // alone so the next cron tick (a minute later) retries it instead of the
+  // notification silently vanishing.
+  const clearableTaskIds: string[] = [];
+  const retryTaskIds: string[] = [];
+
   for (const task of tasks) {
     let subs = subsByUser.get(task.user_id);
     if (!subs) {
@@ -184,7 +195,11 @@ Deno.serve(async (req) => {
       subsByUser.set(task.user_id, subs);
     }
 
-    if (subs.length === 0) continue;
+    if (subs.length === 0) {
+      // Nothing to send to - no push to retry, safe to clear.
+      clearableTaskIds.push(task.id);
+      continue;
+    }
 
     const payload = JSON.stringify({
       title: task.title,
@@ -193,35 +208,56 @@ Deno.serve(async (req) => {
       url: "/today",
     });
 
-    await Promise.allSettled(
+    let delivered = false;
+    let hadTransientFailure = false;
+
+    const results = await Promise.allSettled(
       subs.map(async (sub) => {
-        try {
-          const subscriber = appServer.subscribe({
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth },
-          });
-          await subscriber.pushTextMessage(payload, {});
-          fired++;
-        } catch (err) {
-          const status = (err as { statusCode?: number; status?: number })
-            .statusCode ?? (err as { status?: number }).status;
-          if (status === 404 || status === 410) {
-            staleEndpoints.push(sub.endpoint);
-          } else {
-            console.error("[send-reminders] push:", err);
-          }
-        }
+        const subscriber = appServer.subscribe({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        });
+        await subscriber.pushTextMessage(payload, {});
       }),
     );
+
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        fired++;
+        delivered = true;
+        return;
+      }
+      const err = result.reason;
+      const status = (err as { statusCode?: number; status?: number })
+        .statusCode ?? (err as { status?: number }).status;
+      if (status === 404 || status === 410) {
+        staleEndpoints.push(subs![i].endpoint);
+      } else {
+        hadTransientFailure = true;
+        console.error("[send-reminders] push:", err);
+      }
+    });
+
+    if (delivered || !hadTransientFailure) {
+      // Either it went through somewhere, or every failure was permanent
+      // (stale endpoint) - nothing left to retry.
+      clearableTaskIds.push(task.id);
+    } else {
+      retryTaskIds.push(task.id);
+    }
   }
 
-  // 3. Clear reminder_at so these never fire again.
-  const taskIds = tasks.map((t) => t.id);
-  const { error: clearErr } = await supabase
-    .from("tasks")
-    .update({ reminder_at: null })
-    .in("id", taskIds);
-  if (clearErr) console.error("[send-reminders] clear reminders:", clearErr);
+  // 3. Clear reminder_at only for tasks that are actually done (delivered,
+  // no subscriptions, or only permanent failures). Tasks with a transient
+  // failure and zero successful deliveries keep their reminder_at so the
+  // next run retries them.
+  if (clearableTaskIds.length) {
+    const { error: clearErr } = await supabase
+      .from("tasks")
+      .update({ reminder_at: null })
+      .in("id", clearableTaskIds);
+    if (clearErr) console.error("[send-reminders] clear reminders:", clearErr);
+  }
 
   // 4. Remove dead subscriptions.
   if (staleEndpoints.length) {
@@ -232,7 +268,13 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ fired, tasks: tasks.length, stale: staleEndpoints.length }),
+    JSON.stringify({
+      fired,
+      tasks: tasks.length,
+      cleared: clearableTaskIds.length,
+      retrying: retryTaskIds.length,
+      stale: staleEndpoints.length,
+    }),
     { headers: { "content-type": "application/json" } },
   );
 });
