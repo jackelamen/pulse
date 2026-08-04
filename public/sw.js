@@ -18,8 +18,13 @@
  * assets and the offline fallback are cached.
  */
 
-const CACHE_NAME = "pulse-shell-v5";
-const SHELL_URLS = ["/offline.html", "/icons/pulse.svg"];
+const CACHE_NAME = "pulse-shell-v7";
+const SHELL_URLS = [
+  "/offline.html",
+  "/icons/pulse.svg",
+  "/icons/pulse-192.png",
+  "/icons/pulse-badge.png",
+];
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -117,8 +122,12 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/icons/pulse.svg",
-      badge: "/icons/pulse.svg",
+      // Chrome on Android does NOT render SVG notification icons — must be PNG.
+      icon: "/icons/pulse-192.png",
+      // The badge (small status-bar glyph) is drawn from the ALPHA CHANNEL ONLY
+      // and tinted white by Android. A full-bleed icon therefore shows up as a
+      // solid white box; this asset is a transparent bolt silhouette instead.
+      badge: "/icons/pulse-badge.png",
       tag: taskId ? `pulse-task-${taskId}` : "pulse-reminder",
       renotify: true,
       // Strong, attention-grabbing haptic pattern: long buzz, gap, long buzz,
