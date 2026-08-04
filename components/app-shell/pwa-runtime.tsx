@@ -11,32 +11,70 @@ import { flushTaskQueue, queuedTaskCount } from "@/lib/offline/task-queue";
 
 async function registerPushSubscription(swReg: ServiceWorkerRegistration) {
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!vapidKey) return;
+  if (!vapidKey) {
+    console.warn("[pwa] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set — cannot subscribe.");
+    return { ok: false, reason: "missing-vapid-key" as const };
+  }
+
+  const appServerKey = urlBase64ToUint8Array(vapidKey);
 
   try {
+    // An existing subscription may be bound to a PREVIOUS VAPID key (e.g. after
+    // a key rotation). Such a subscription can never receive our pushes, so
+    // detect the mismatch and re-subscribe with the current key.
     const existing = await swReg.pushManager.getSubscription();
-    const sub =
-      existing ??
-      (await swReg.pushManager.subscribe({
+    let sub = existing;
+
+    if (existing) {
+      const boundKey = existing.options?.applicationServerKey;
+      if (!boundKey || !buffersEqual(boundKey, appServerKey)) {
+        console.info("[pwa] existing push subscription uses a stale VAPID key — resubscribing.");
+        await existing.unsubscribe().catch(() => undefined);
+        sub = null;
+      }
+    }
+
+    if (!sub) {
+      sub = await swReg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      }));
+        applicationServerKey: appServerKey,
+      });
+    }
 
     const json = sub.toJSON();
-    await fetch("/api/push/subscribe", {
+    // fetch() does NOT throw on 4xx/5xx — check explicitly or failures are silent.
+    const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         endpoint: sub.endpoint,
         keys: json.keys,
       }),
     });
 
-    // Tell the SW to start its polling loop now that we have a subscription.
-    swReg.active?.postMessage({ type: "PULSE_PING" });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error(
+        `[pwa] saving push subscription failed: HTTP ${res.status} ${res.statusText} ${detail}`
+      );
+      return { ok: false, reason: `http-${res.status}` as const };
+    }
+
+    console.info("[pwa] push subscription registered.");
+    return { ok: true as const };
   } catch (err) {
-    console.warn("[pwa] push subscription failed:", err);
+    console.error("[pwa] push subscription failed:", err);
+    return { ok: false, reason: "exception" as const };
   }
+}
+
+function buffersEqual(a: ArrayBuffer, b: ArrayBuffer) {
+  if (a.byteLength !== b.byteLength) return false;
+  const va = new Uint8Array(a);
+  const vb = new Uint8Array(b);
+  for (let i = 0; i < va.length; i++) if (va[i] !== vb[i]) return false;
+  return true;
 }
 
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
@@ -58,6 +96,8 @@ export function PwaRuntime() {
   const [syncing, setSyncing] = useState(false);
   // "prompt" means we should show the notification permission nudge.
   const [notifState, setNotifState] = useState<NotificationPermission | null>(null);
+  // Surfaced so subscription failures aren't invisible on mobile (no console).
+  const [pushError, setPushError] = useState<string | null>(null);
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -74,10 +114,14 @@ export function PwaRuntime() {
       }
       try {
         const reg = await navigator.serviceWorker.register("/sw.js");
+        // Wait until the SW is actually active — pushManager.subscribe() can
+        // fail if called against a registration that isn't ready yet.
+        await navigator.serviceWorker.ready;
 
         // If permission is already granted, register/refresh the push sub.
         if (Notification.permission === "granted") {
-          await registerPushSubscription(reg);
+          const result = await registerPushSubscription(reg);
+          if (result && !result.ok) setPushError(result.reason);
         }
       } catch {
         // SW registration failures are non-fatal.
@@ -117,11 +161,13 @@ export function PwaRuntime() {
 
   async function requestNotificationPermission() {
     if (!("Notification" in window)) return;
+    setPushError(null);
     const result = await Notification.requestPermission();
     setNotifState(result);
     if (result === "granted" && "serviceWorker" in navigator) {
       const reg = await navigator.serviceWorker.ready;
-      await registerPushSubscription(reg);
+      const sub = await registerPushSubscription(reg);
+      if (sub && !sub.ok) setPushError(sub.reason);
     }
   }
 
@@ -134,6 +180,24 @@ export function PwaRuntime() {
 
   return (
     <>
+      {/* Push subscription failure — visible so mobile failures aren't silent */}
+      {pushError && (
+        <div className="fixed inset-x-3 bottom-32 z-50 mx-auto flex max-w-sm items-start gap-2 rounded-lg border border-destructive/40 bg-card px-3 py-2 text-xs shadow-lg md:bottom-16">
+          <Bell className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+          <span className="min-w-0 flex-1">
+            Reminders could not be enabled ({pushError}).
+            {pushError === "http-401" && " You may need to sign in again."}
+          </span>
+          <button
+            onClick={() => setPushError(null)}
+            className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+            aria-label="Dismiss"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Offline / sync banner */}
       {(!online || queued > 0) && (
         <div className="fixed inset-x-3 bottom-20 z-50 mx-auto flex max-w-sm items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-lg md:bottom-4">
