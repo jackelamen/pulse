@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell, Archive } from "lucide-react";
+import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell, Archive, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { XpmLink } from "./xpm-link";
 import {
   useCreateTask,
   useUpdateTask,
@@ -311,6 +312,12 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
               onChange={(rule) => persist({ recurrence_rule: rule })}
             />
           </Row>
+
+          {!virtual && (
+            <Row icon={<Briefcase className="h-4 w-4 text-muted-foreground" />} label="xPM">
+              <XpmLink taskId={templateId} taskTitle={value.title} />
+            </Row>
+          )}
         </div>
       </div>
     </Drawer>
