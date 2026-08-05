@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
-import { formatTime, isSameDay } from "@/lib/date";
+import { formatTime, isSameDay, taskAnchor } from "@/lib/date";
 import { HOUR_PX, SLOTS_PER_DAY, SLOT_MINUTES, SLOT_PX, snapMinutes } from "./calendar-grid";
 import { EventBlock } from "./event-block";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
@@ -23,13 +23,15 @@ export function DayColumn({
   const materialize = useMaterializeException();
 
   const dayInstances = instances.filter((t) => {
-    const anchor = t.start_at ? new Date(t.start_at) : null;
+    const anchorIso = taskAnchor(t);
+    const anchor = anchorIso ? new Date(anchorIso) : null;
     return anchor && isSameDay(anchor, date);
   });
 
   // Naive single-lane layout for v1. Overlap detection comes later.
-  const timed = dayInstances.filter((t) => t.start_at);
-  const lanes = layoutLanes(timed);
+  // dayInstances is already anchor-filtered above (start_at or, failing
+  // that, due_at), so every item here has a time to lay out.
+  const lanes = layoutLanes(dayInstances);
 
   function dropY(e: React.DragEvent): number {
     if (!ref.current) return 0;
@@ -147,16 +149,16 @@ function layoutLanes(timed: VirtualTask[]) {
   const assigned: Array<{ task: VirtualTask; lane: number }> = [];
 
   const sorted = [...timed].sort(
-    (a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime()
+    (a, b) => new Date(taskAnchor(a)!).getTime() - new Date(taskAnchor(b)!).getTime()
   );
 
   for (const t of sorted) {
-    const start = new Date(t.start_at!).getTime();
+    const start = new Date(taskAnchor(t)!).getTime();
     let placed = false;
     for (let i = 0; i < lanes.length; i++) {
       const last = lanes[i][lanes[i].length - 1];
       const lastEnd =
-        new Date(last.start_at!).getTime() + (last.duration_minutes ?? 30) * 60_000;
+        new Date(taskAnchor(last)!).getTime() + (last.duration_minutes ?? 30) * 60_000;
       if (start >= lastEnd) {
         lanes[i].push(t);
         assigned.push({ task: t, lane: i });

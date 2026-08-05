@@ -1,7 +1,7 @@
 "use client";
 
 import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
-import { addDays, isSameDay, startOfMonth, startOfWeek } from "@/lib/date";
+import { addDays, isSameDay, startOfMonth, startOfWeek, taskAnchor } from "@/lib/date";
 import { tagColor } from "@/lib/lists/tag-colors";
 import { ymd } from "@/lib/tasks/recurrence";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
@@ -18,7 +18,8 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
   // bucket by ymd
   const byDay = new Map<string, VirtualTask[]>();
   for (const t of instances) {
-    const a = t.start_at ? new Date(t.start_at) : t.due_at ? new Date(t.due_at) : null;
+    const anchorIso = taskAnchor(t);
+    const a = anchorIso ? new Date(anchorIso) : null;
     if (!a) continue;
     const key = ymd(a);
     if (!byDay.has(key)) byDay.set(key, []);

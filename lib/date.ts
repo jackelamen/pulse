@@ -71,6 +71,17 @@ export function formatMonthYear(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+/**
+ * The time a task should be anchored to on the calendar grid: start_at if
+ * set, otherwise due_at (so a due-only task -- e.g. one created from xPM,
+ * which only ever sets due_at -- still renders at its due time instead of
+ * silently landing in the Unscheduled rail). Returns null only when neither
+ * is set, i.e. the task is genuinely unscheduled.
+ */
+export function taskAnchor(t: { start_at?: string | null; due_at?: string | null }): string | null {
+  return t.start_at ?? t.due_at ?? null;
+}
+
 export function dayLabel(d: Date, today: Date): string {
   const diff = Math.round((startOfDay(d).getTime() - startOfDay(today).getTime()) / 86400000);
   if (diff === 0) return "Today";

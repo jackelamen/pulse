@@ -2,7 +2,7 @@
 
 import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
 import { tagColor } from "@/lib/lists/tag-colors";
-import { formatTime } from "@/lib/date";
+import { formatTime, taskAnchor } from "@/lib/date";
 import { HOUR_PX, SLOT_PX, SLOT_MINUTES, minutesToPx, snapMinutes } from "./calendar-grid";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
@@ -17,9 +17,12 @@ export function EventBlock({
 }) {
   const update = useUpdateTask();
   const materialize = useMaterializeException();
-  if (!task.start_at) return null;
+  const anchorIso = taskAnchor(task);
+  if (!anchorIso) return null;
 
-  const start = new Date(task.start_at);
+  // A due-only task (start_at unset, e.g. one created from xPM) renders at
+  // its due time, same as a properly scheduled one.
+  const start = new Date(anchorIso);
   const minFromMidnight = start.getHours() * 60 + start.getMinutes();
   const duration = task.duration_minutes ?? 30;
 

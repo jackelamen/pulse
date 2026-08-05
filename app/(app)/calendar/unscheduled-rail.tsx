@@ -17,6 +17,7 @@ export function UnscheduledRail() {
         .is("deleted_at", null)
         .is("completed_at", null)
         .is("start_at", null)
+        .is("due_at", null)
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(50);
