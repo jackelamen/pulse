@@ -548,28 +548,50 @@ export function useReorderTask() {
 /* Bulk leftovers actions (per spec section 7.2)                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Push leftovers to today/tomorrow/inbox.
+ *
+ * Takes full Task objects (not just ids) because "today"/"tomorrow" need to
+ * know each task's OWN start_at/due_at to do the right thing:
+ *  - Only the date moves forward; the original time-of-day is preserved.
+ *    (Previously this collapsed every pushed task to a flat midnight
+ *    due_at, which is why pushed tasks showed up at 12:00 AM.)
+ *  - Only the field(s) that were actually in the past get touched. A task
+ *    with a past start_at (not due_at) previously had ONLY due_at patched,
+ *    leaving its stale start_at untouched -- which both kept it looking
+ *    wrong AND meant it never stopped matching the leftovers query (which
+ *    checks start_at OR due_at), so "push to today" silently appeared to
+ *    do nothing for scheduled tasks.
+ */
 export function useRescheduleLeftovers() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ ids, target }: { ids: string[]; target: "today" | "tomorrow" | "inbox" }) => {
-      let patch: TaskEditableFields = {};
-      if (target === "today") {
-        const t = startOfLocalDay(new Date());
-        patch = { due_at: t.toISOString() };
-      } else if (target === "tomorrow") {
-        const t = startOfLocalDay(new Date());
-        t.setDate(t.getDate() + 1);
-        patch = { due_at: t.toISOString() };
-      } else {
-        patch = { due_at: null, start_at: null, list_id: null };
+    mutationFn: async ({ tasks, target }: { tasks: Task[]; target: "today" | "tomorrow" | "inbox" }) => {
+      if (tasks.length === 0) return [];
+
+      if (target === "inbox") {
+        const ids = tasks.map((t) => t.id);
+        const { error } = await supabase()
+          .from("tasks")
+          .update({ due_at: null, start_at: null, list_id: null })
+          .in("id", ids);
+        if (error) throw error;
+        return ids;
       }
 
-      const { error } = await supabase()
-        .from("tasks")
-        .update(patch)
-        .in("id", ids);
-      if (error) throw error;
-      return ids;
+      const targetDay = startOfLocalDay(new Date());
+      if (target === "tomorrow") targetDay.setDate(targetDay.getDate() + 1);
+
+      const writes = tasks.map((task) => {
+        const patch: TaskEditableFields = {};
+        if (task.start_at) patch.start_at = withDate(new Date(task.start_at), targetDay).toISOString();
+        if (task.due_at) patch.due_at = withDate(new Date(task.due_at), targetDay).toISOString();
+        return supabase().from("tasks").update(patch).eq("id", task.id);
+      });
+      const results = await Promise.all(writes);
+      const failed = results.find((r) => r.error)?.error;
+      if (failed) throw failed;
+      return tasks.map((t) => t.id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskKeys.all });

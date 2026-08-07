@@ -91,9 +91,7 @@ export function TodayClient({ firstName }: { firstName: string | null }) {
       {(leftovers.data ?? []).length > 0 && (
         <LeftoverSection
           tasks={leftovers.data!}
-          onBulk={(target) =>
-            reschedule.mutate({ ids: leftovers.data!.map((t) => t.id), target })
-          }
+          onBulk={(target) => reschedule.mutate({ tasks: leftovers.data!, target })}
           pending={reschedule.isPending}
         />
       )}
