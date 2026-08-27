@@ -12,6 +12,7 @@ import { PwaRuntime } from "@/components/app-shell/pwa-runtime";
 import { SettingsRuntime } from "@/components/app-shell/settings-runtime";
 import { PulseWorkBridge } from "@/components/app-shell/pulse-work-bridge";
 import { displayNameForUser } from "@/lib/profile/display";
+import { PulseMark } from "@/components/app-shell/pulse-mark";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -26,8 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return (
       <main className="flex min-h-dvh items-center justify-center bg-background p-6">
         <section className="pulse-pane w-full max-w-sm p-8 text-center">
-          <div className="mx-auto h-10 w-10 rounded-xl bg-primary" />
-          <h1 className="mt-5 font-display text-xl font-semibold text-foreground">Sign in to Pulse</h1>
+          <PulseMark className="mx-auto h-11 w-11" />
+          <h1 className="mt-5 pulse-title">Sign in to Pulse</h1>
           <p className="mt-2 text-sm text-muted-foreground">Your session was not found on this server.</p>
           <a
             href="/login"

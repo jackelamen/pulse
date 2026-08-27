@@ -213,19 +213,21 @@ function DashboardHero({
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-white/10 px-4 py-3 text-white shadow-[0_16px_42px_rgba(3,10,25,0.16)] md:px-5 md:py-4 xl:rounded-xl xl:py-3"
-      style={{ background: "var(--pulse-sidebar-rail)" }}
+      className="overflow-hidden rounded-2xl border border-white/10 px-4 py-4 text-white shadow-[0_16px_42px_rgba(3,10,25,0.16)] md:px-6 md:py-5"
+      style={{ background: "var(--pulse-hero)" }}
     >
       <div className="flex flex-col gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
+          <p className="pulse-on-dark-muted font-mono text-[11px] uppercase tracking-[0.18em]">
             {header.dateLabel}
           </p>
           <h1 className="mt-1 truncate font-display text-2xl font-semibold leading-none tracking-tight text-white md:text-3xl xl:text-2xl">
             {greeting}
           </h1>
-          <p className="mt-1.5 hidden max-w-2xl text-xs leading-5 text-white/62 sm:block">
-            Ready for the day? Here is your prioritized pulse.
+          <p className="pulse-on-dark-muted mt-1.5 hidden max-w-2xl text-xs leading-5 sm:block">
+            {openCount === 0
+              ? "Nothing scheduled. Add a task below or take the day."
+              : `${priorityCount > 0 ? `${priorityCount} marked priority` : "Nothing marked priority"} · ${scheduledCount} at a set time.`}
           </p>
         </div>
 
@@ -239,13 +241,17 @@ function DashboardHero({
                 <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white ring-1 ring-white/10">
                   <Icon className="h-3.5 w-3.5" />
                 </div>
-                <div className="hidden min-w-0 truncate text-[10px] font-semibold leading-tight text-white/55 sm:block">
+                <div className="pulse-on-dark-muted hidden min-w-0 truncate text-[11px] font-medium leading-tight sm:block">
                   {meta}
                 </div>
               </div>
               <div className="mt-2 flex min-w-0 items-end gap-1.5">
-                <div className="font-display text-2xl font-semibold leading-none text-white md:text-3xl">{value}</div>
-                <div className="truncate pb-0.5 text-[10px] font-semibold leading-tight text-white/72 sm:text-[11px] md:text-xs">{label}</div>
+                <div className="pulse-figure font-display text-2xl font-semibold leading-none text-white md:text-3xl">
+                  {value}
+                </div>
+                <div className="truncate pb-0.5 text-[11px] font-medium leading-tight text-white/85 md:text-xs">
+                  {label}
+                </div>
               </div>
             </div>
           ))}
@@ -308,7 +314,7 @@ function PriorityPanel({
                   <button
                     type="button"
                     onClick={() => openTask(task.id)}
-                    className="block text-left text-base font-semibold leading-snug text-foreground hover:underline"
+                    className="block text-left text-sm font-semibold leading-snug text-foreground hover:underline"
                   >
                     {task.title}
                   </button>
@@ -435,14 +441,14 @@ function DarkTimeline({ tasks }: { tasks: Task[] }) {
                   checked={!!task.completed_at}
                   onCheckedChange={() => toggle.mutate(task)}
                   priority={task.priority}
-                  className="mt-0.5 border-white/50 bg-transparent hover:border-white"
+                  className="mt-0.5 border-white/70 bg-transparent hover:border-white"
                   aria-label={task.completed_at ? `Mark ${task.title} incomplete` : `Complete ${task.title}`}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-base font-semibold text-white group-hover:text-white">
                     {task.title}
                   </div>
-                  <div className="mt-1 text-sm text-white/65">
+                  <div className="pulse-on-dark-muted mt-1 text-sm">
                     {task.duration_minutes ? `${task.duration_minutes} minutes` : "No duration set"}
                   </div>
                 </div>
@@ -469,7 +475,7 @@ function DarkHabitPanel({
     <section className="border-t border-white/10 pt-5">
       <div className="mb-3 flex items-center gap-3">
         <DarkSectionHeader>Habits due today</DarkSectionHeader>
-        <Repeat className="ml-auto h-4 w-4 text-white/55" />
+        <Repeat className="pulse-on-dark-muted ml-auto h-4 w-4" />
       </div>
       {habits.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-4 text-sm text-white/75">
@@ -505,7 +511,7 @@ function DarkHabitPanel({
                   aria-label={`Edit ${habit.name}`}
                 >
                   <span className="block truncate text-sm font-semibold text-white">{habit.name}</span>
-                  <span className="block text-xs capitalize text-white/55">{habit.cadence}</span>
+                  <span className="pulse-on-dark-muted block text-xs capitalize">{habit.cadence}</span>
                 </button>
               </div>
             );

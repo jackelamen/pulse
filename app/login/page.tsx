@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { PulseMark } from "@/components/app-shell/pulse-mark";
 
 type Mode = "signin" | "signup";
 
@@ -71,17 +72,21 @@ function LoginForm() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background p-6">
       <div className="pulse-pane w-full max-w-sm p-8">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary" />
+        <div className="mb-7 flex items-center gap-2.5">
+          <PulseMark className="h-9 w-9" />
           <div>
-            <div className="font-display text-lg font-semibold leading-tight">Pulse</div>
-            <div className="text-xs text-muted-foreground">EDGEx Tasks</div>
+            <div className="font-display text-lg font-semibold leading-tight tracking-tight">Pulse</div>
+            <div className="pulse-eyebrow">EDGEx Tasks</div>
           </div>
         </div>
 
-        <h1 className="font-display text-xl font-semibold">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "signin" ? "Sign in with email and password." : "Create your Pulse account."}
+        <h1 className="pulse-title">
+          {mode === "signin" ? "Welcome back" : "Create your account"}
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {mode === "signin"
+            ? "Sign in with your email and password."
+            : "You will confirm your email before the first sign in."}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
@@ -107,7 +112,13 @@ function LoginForm() {
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
           />
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
+            {isSubmitting
+              ? mode === "signin"
+                ? "Signing in..."
+                : "Creating account..."
+              : mode === "signin"
+                ? "Sign in"
+                : "Create account"}
           </Button>
         </form>
 
@@ -128,7 +139,7 @@ function LoginForm() {
           onClick={() => {
             setMode((m) => (m === "signin" ? "signup" : "signin"));
           }}
-          className="mt-5 text-xs text-muted-foreground hover:text-foreground"
+          className="mt-5 rounded text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {mode === "signin" ? "Create an account" : "Already have an account? Sign in"}
         </button>

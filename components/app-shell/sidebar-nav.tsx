@@ -74,13 +74,12 @@ const RAIL: Array<{
   mode: NavMode;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  tone: string;
 }> = [
-  { href: "/today", mode: "tasks", label: "Tasks", icon: CircleCheckBig, tone: "from-white to-white" },
-  { href: "/calendar", mode: "calendar", label: "Calendar", icon: Calendar, tone: "from-slate-300 to-slate-400" },
-  { href: "/habits", mode: "habits", label: "Habits", icon: Grid2X2, tone: "from-emerald-300 to-sky-300" },
-  { href: "/focus", mode: "focus", label: "Focus", icon: Timer, tone: "from-violet-300 to-fuchsia-300" },
-  { href: "/settings", mode: "settings", label: "Settings", icon: Settings, tone: "from-amber-200 to-orange-300" },
+  { href: "/today", mode: "tasks", label: "Tasks", icon: CircleCheckBig },
+  { href: "/calendar", mode: "calendar", label: "Calendar", icon: Calendar },
+  { href: "/habits", mode: "habits", label: "Habits", icon: Grid2X2 },
+  { href: "/focus", mode: "focus", label: "Focus", icon: Timer },
+  { href: "/settings", mode: "settings", label: "Settings", icon: Settings },
 ];
 
 export function SidebarNav({ email, name }: { email?: string | null; name?: string | null }) {
@@ -107,9 +106,7 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
         className="flex w-[74px] shrink-0 flex-col items-center px-3 py-4"
         style={{ background: "var(--pulse-sidebar-rail)" }}
       >
-        <div className="mb-7 grid h-12 w-12 place-items-center rounded-3xl bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_26px_rgba(0,0,0,0.16)]">
-          <PulseMark className="h-9 w-9" />
-        </div>
+        <PulseMark className="mb-7 h-11 w-11 shrink-0 shadow-[0_10px_24px_rgba(0,0,0,0.22)] [border-radius:17px]" />
         <div className="flex flex-1 flex-col items-center gap-4">
           {RAIL.map((item) => {
             const Icon = item.icon;
@@ -120,24 +117,20 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
                 href={item.href}
                 aria-label={item.label}
                 title={item.label}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "grid h-11 w-11 place-items-center rounded-2xl transition-all",
+                  "grid h-11 w-11 place-items-center rounded-2xl transition-colors",
                   active
                     ? "bg-white text-[#26345f] shadow-[0_12px_24px_rgba(0,0,0,0.18)]"
-                    : "text-white/52 hover:bg-white/10 hover:text-white"
+                    : "text-white/75 hover:bg-white/10 hover:text-white"
                 )}
               >
-                <Icon
-                  className={cn(
-                    "h-5 w-5",
-                    !active && `bg-gradient-to-br ${item.tone} bg-clip-text`
-                  )}
-                />
+                <Icon className="h-5 w-5" />
               </Link>
             );
           })}
         </div>
-        <div className="flex flex-col items-center gap-4 text-white/45">
+        <div className="flex flex-col items-center gap-4 text-white/70">
           <button
             type="button"
             aria-label="Sync"
@@ -173,7 +166,7 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
           <div className="font-display text-lg font-semibold tracking-tight text-foreground">
             {modeTitle(mode)}
           </div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Pulse</div>
+          <div className="pulse-eyebrow">Pulse</div>
         </div>
         <button
           type="button"
@@ -215,9 +208,7 @@ export function SidebarNav({ email, name }: { email?: string | null; name?: stri
         </>
       ) : (
         <div className="mt-4 px-2">
-          <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {modeTitle(mode)}
-          </div>
+          <div className="pulse-eyebrow px-3 pb-1">{modeTitle(mode)}</div>
           <div className="space-y-0.5">
             {itemsForMode(mode).map((item) => (
               <NavLink key={item.href} item={item} active={path.startsWith(item.href)} />

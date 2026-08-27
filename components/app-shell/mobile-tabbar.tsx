@@ -32,9 +32,10 @@ export function MobileTabBar() {
                 className={cn(
                   "my-1 flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl py-2 text-[11px] transition-colors",
                   active
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 font-medium text-primary"
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                 )}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>

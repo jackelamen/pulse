@@ -14,28 +14,28 @@ interface CheckboxProps {
 }
 
 /**
- * Pulse circular checkbox. The border color reflects priority (subtle, not loud)
- * and on complete it fills with the priority color and shows a check.
+ * Pulse circular checkbox.
+ *
+ * Priority is signalled while the task is OPEN and released once it is done.
+ * Previously the completed fill was keyed to priority, and priority 0 filled
+ * with `bg-foreground` -- so a finished low-priority task rendered as the
+ * heaviest, blackest dot in the list while a finished high-priority one was a
+ * softer rose. That inverted the weight it was trying to communicate, and made
+ * completed work compete with the open work above it. Done tasks now recede
+ * uniformly; the priority hue lives in the open-state ring, where it can still
+ * be acted on.
  */
 export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
   ({ checked, onCheckedChange, priority = 0, size = "md", className, ...rest }, ref) => {
     const dim = size === "sm" ? "h-4 w-4" : "h-5 w-5";
     const ring =
       priority === 3
-        ? "border-rose-400"
+        ? "border-rose-500 hover:border-rose-600"
         : priority === 2
-          ? "border-amber-400"
+          ? "border-amber-500 hover:border-amber-600"
           : priority === 1
-            ? "border-sky-400"
-            : "border-muted-foreground/40";
-    const fill =
-      priority === 3
-        ? "bg-rose-500 border-rose-500"
-        : priority === 2
-          ? "bg-amber-500 border-amber-500"
-          : priority === 1
-            ? "bg-sky-500 border-sky-500"
-            : "bg-foreground border-foreground";
+            ? "border-sky-500 hover:border-sky-600"
+            : "border-muted-foreground/55 hover:border-foreground/70";
 
     return (
       <button
@@ -48,17 +48,19 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
           onCheckedChange(!checked);
         }}
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-150",
+          "inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-150",
           dim,
           checked
-            ? cn(fill, "scale-110 shadow-[0_0_0_3px_rgba(0,0,0,0.08)]")
-            : cn(ring, "bg-card hover:border-foreground/60"),
+            ? "animate-task-complete border-muted-foreground/50 bg-muted-foreground/50"
+            : cn(ring, "bg-card"),
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
           className
         )}
         {...rest}
       >
-        {checked && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+        {checked && (
+          <Check className="h-3 w-3 animate-check-in text-card" strokeWidth={3.5} />
+        )}
       </button>
     );
   }

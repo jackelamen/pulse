@@ -168,7 +168,7 @@ export function TaskRow({
               className={cn(
                 "block w-full truncate text-left text-sm transition-colors",
                 !done && "font-medium text-foreground",
-                done && "text-muted-foreground/60 line-through decoration-muted-foreground/40 decoration-[1.5px]"
+                done && "text-muted-foreground/75 line-through decoration-muted-foreground/50 decoration-[1.5px]"
               )}
             >
               {task.title}

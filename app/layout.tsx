@@ -1,8 +1,37 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Familjen_Grotesk, Public_Sans, JetBrains_Mono } from "next/font/google";
 import { getPublicPulseEnv } from "@/lib/env";
 import "./globals.css";
 import { Providers } from "./providers";
+
+/**
+ * Pulse type system.
+ *
+ * display — Familjen Grotesk: tight, slightly condensed grotesque. Carries page
+ *   titles and the big figures on Today so counts read as instrument readouts.
+ * body    — Public Sans: sturdy at 13-15px, the size most of this app lives at.
+ * mono    — JetBrains Mono: shortcut keys, clock times, tabular counts.
+ */
+const display = Familjen_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-display",
+});
+
+const body = Public_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
@@ -52,7 +81,11 @@ export default function RootLayout({
   const publicEnv = getPublicPulseEnv();
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${body.variable} ${display.variable} ${mono.variable}`}
+    >
       <head>
         <Script
           id="pulse-runtime-env"

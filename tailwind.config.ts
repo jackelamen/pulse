@@ -66,8 +66,9 @@ const config: Config = {
         ring: "hsl(var(--ring))",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        display: ["var(--font-manrope)", "var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-body)", "ui-sans-serif", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -83,15 +84,22 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "task-strike": {
-          "0%": { textDecorationColor: "transparent" },
-          "100%": { textDecorationColor: "currentColor" },
+        // The single orchestrated motion moment in Pulse: completing a task.
+        "task-complete": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(0.86)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "check-in": {
+          "0%": { transform: "scale(0.4)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "task-strike": "task-strike 200ms ease-out forwards",
+        "task-complete": "task-complete 260ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "check-in": "check-in 180ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       },
     },
   },

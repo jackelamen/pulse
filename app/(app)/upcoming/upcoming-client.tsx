@@ -39,7 +39,7 @@ export function UpcomingClient() {
 
       {/* Week strip */}
       <section>
-        <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="pulse-eyebrow mb-2 block px-2">
           This week
         </h2>
         <div className="space-y-2">
@@ -54,7 +54,7 @@ export function UpcomingClient() {
 
       {/* Next 30 list */}
       <section>
-        <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="pulse-eyebrow mb-2 block px-2">
           Beyond this week
         </h2>
         <div className="space-y-2">
@@ -64,9 +64,9 @@ export function UpcomingClient() {
             const items = buckets.get(key) ?? [];
             if (items.length === 0) {
               return (
-                <div key={key} className="flex items-center gap-3 px-2 py-1 text-xs text-muted-foreground/50">
+                <div key={key} className="flex items-center gap-3 px-2 py-1 text-xs text-muted-foreground">
                   <span className="w-32 shrink-0">{dayLabel(d, today)}</span>
-                  <span className="italic">(empty)</span>
+                  <span>No tasks</span>
                 </div>
               );
             }
@@ -86,10 +86,10 @@ function DayBucket({ date, today, items }: { date: Date; today: Date; items: Vir
         <span className="text-[11px] text-muted-foreground">
           {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </span>
-        <span className="ml-auto text-[11px] text-muted-foreground">{items.length}</span>
+        <span className="pulse-figure ml-auto text-[11px] text-muted-foreground">{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div className="px-2 py-1 text-xs text-muted-foreground/60">No tasks.</div>
+        <div className="px-2 py-1 text-xs text-muted-foreground">No tasks.</div>
       ) : (
         <ul className="space-y-0.5">
           {items.map((t) => (

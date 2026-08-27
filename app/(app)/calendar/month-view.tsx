@@ -78,7 +78,7 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
               }}
               onDrop={(e) => handleDrop(e, d)}
               className={`min-h-0 border-b border-r border-border p-1.5 transition-colors hover:bg-muted/30 ${
-                inMonth ? "" : "bg-muted/10 text-muted-foreground/50"
+                inMonth ? "" : "bg-muted/10 text-muted-foreground/70"
               }`}
             >
               <div

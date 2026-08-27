@@ -16,7 +16,7 @@ export default async function TodayPage() {
   const firstName = displayName?.split(/\s+/)[0] ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] px-3 py-4 md:px-7 md:py-8">
+    <div className="pulse-page-wide">
       <TodayClient firstName={firstName} />
     </div>
   );

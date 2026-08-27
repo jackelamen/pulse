@@ -4,13 +4,13 @@ export const metadata = { title: "Habits" };
 
 export default function HabitsPage() {
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-7 md:py-10">
+    <div className="pulse-page-wide">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Daily rhythm
           </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
+          <h1 className="pulse-title">
             Habits
           </h1>
         </div>

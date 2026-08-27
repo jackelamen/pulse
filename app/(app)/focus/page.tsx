@@ -4,10 +4,10 @@ export const metadata = { title: "Focus" };
 
 export default function FocusPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 py-8 md:py-12">
+    <div className="pulse-page-wide flex flex-1 flex-col">
       <header className="mb-6">
-        <p className="text-sm text-muted-foreground">Pomodoro, flow, and distraction logging</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+        <p className="pulse-eyebrow">Pomodoro · Flow · Distractions</p>
+        <h1 className="pulse-title">
           Focus
         </h1>
       </header>

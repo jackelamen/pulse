@@ -4,10 +4,6 @@
 
 @layer base {
   :root {
-    --font-inter: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      sans-serif;
-    --font-manrope: Manrope, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-      "Segoe UI", sans-serif;
     --background: 220 28% 97%;
     --foreground: 235 30% 8%;
 
@@ -30,6 +26,10 @@
     --input: 228 20% 88%;
     --ring: 16 85% 56%;
     --pulse-sidebar-rail: linear-gradient(180deg, #253568 0%, #303b72 48%, #3c4a80 100%);
+    /* Today's hero must not read as an extension of the rail it sits beside. */
+    --pulse-hero: linear-gradient(135deg, #1b2550 0%, #2a3566 52%, #3a2f5e 100%);
+    /* Minimum legible text alpha on the indigo surfaces (>=4.5:1). */
+    --pulse-on-dark-muted: rgba(255, 255, 255, 0.74);
 
     --radius: 0.6rem;
   }
@@ -70,7 +70,7 @@
     background:
       linear-gradient(180deg, hsl(220 40% 99%) 0%, hsl(var(--background)) 42%),
       hsl(var(--background));
-    font-feature-settings: "cv11", "ss01";
+    font-feature-settings: "ss01";
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
   }
@@ -103,11 +103,46 @@
   .pulse-kbd {
     @apply rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground shadow-[inset_0_-1px_0_rgba(15,16,32,0.06)];
   }
+  /* Text sitting on the indigo rail / hero. */
+  .pulse-on-dark-muted {
+    color: var(--pulse-on-dark-muted);
+  }
   .pulse-section-label {
     @apply mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground;
   }
   .pulse-chip {
     @apply inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground;
+  }
+  /*
+   * One page shell for every route. Before this, pages picked between
+   * max-w-2xl / 3xl / 4xl / 5xl / 6xl / 7xl / 1480px with px-3 or px-5 and
+   * py-7/8/10/12 -- eight different measures inside one app, so content
+   * jumped horizontally on every navigation. Reading width is a property of
+   * the content, so only two variants exist: `pulse-page` for list views and
+   * `pulse-page-wide` for dashboards and grids.
+   */
+  .pulse-page {
+    @apply mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-9;
+  }
+  .pulse-page-wide {
+    @apply mx-auto w-full max-w-[1480px] px-4 py-6 md:px-7 md:py-9;
+  }
+  /*
+   * Page titles step DOWN, not up. The sidebar already names the current view,
+   * so a 4xl "Inbox" spent the largest type in the app restating the nav and
+   * out-shouted the tasks underneath it. The eye's first stop belongs to the
+   * content.
+   */
+  .pulse-title {
+    @apply font-display text-xl font-semibold tracking-tight text-foreground md:text-2xl;
+  }
+  .pulse-eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground;
+  }
+  /* Counts, times and figures align in columns instead of jittering. */
+  .pulse-figure {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
   .pulse-mobile-scroll {
     -webkit-overflow-scrolling: touch;

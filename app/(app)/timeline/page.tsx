@@ -4,12 +4,10 @@ export const metadata = { title: "Timeline View" };
 
 export default function TimelinePage() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-8 md:py-10">
+    <div className="pulse-page-wide">
       <header className="mb-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-          Today
-        </p>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight md:text-5xl">
+        <p className="pulse-eyebrow">Today</p>
+        <h1 className="pulse-title">
           Timeline View
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
