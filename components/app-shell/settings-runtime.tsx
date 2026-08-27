@@ -30,6 +30,10 @@ export function SettingsRuntime() {
     root.style.setProperty("--primary", accent);
     root.style.setProperty("--ring", accent);
     root.style.setProperty("--pulse-sidebar-rail", sidebarTheme.rail);
+    // The hero has to follow the chosen theme, not sit in a fixed gradient of
+    // its own -- otherwise picking any theme leaves Today's hero in a hue the
+    // rail beside it no longer uses.
+    root.style.setProperty("--pulse-hero", dark ? sidebarTheme.heroDark : sidebarTheme.hero);
   }, [data]);
 
   return null;

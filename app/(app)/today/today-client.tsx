@@ -391,7 +391,7 @@ function TodayRail({
   return (
     <aside
       className="overflow-hidden rounded-[1.5rem] text-white shadow-[0_24px_64px_rgba(3,10,25,0.24)] ring-1 ring-white/10 xl:sticky xl:top-6"
-      style={{ background: "var(--pulse-sidebar-rail)" }}
+      style={{ background: "var(--pulse-hero)" }}
     >
       <div className="space-y-6 p-5">
         <DarkTimeline tasks={tasks} />

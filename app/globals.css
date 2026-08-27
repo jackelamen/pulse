@@ -26,8 +26,13 @@
     --input: 228 20% 88%;
     --ring: 16 85% 56%;
     --pulse-sidebar-rail: linear-gradient(180deg, #253568 0%, #303b72 48%, #3c4a80 100%);
-    /* Today's hero must not read as an extension of the rail it sits beside. */
-    --pulse-hero: linear-gradient(135deg, #1b2550 0%, #2a3566 52%, #3a2f5e 100%);
+    /*
+     * Today's hero. Distinguished from the rail by angle and by sitting in the
+     * darker half of the theme's range -- never by a different hue. Overridden
+     * per theme (and per light/dark) by SettingsRuntime; this default tracks
+     * the default "midnight" rail.
+     */
+    --pulse-hero: linear-gradient(135deg, #16203f 0%, #253568 100%);
     /* Minimum legible text alpha on the indigo surfaces (>=4.5:1). */
     --pulse-on-dark-muted: rgba(255, 255, 255, 0.74);
 
@@ -35,6 +40,7 @@
   }
 
   .dark {
+    --pulse-hero: linear-gradient(135deg, #111834 0%, #1d2a55 100%);
     --background: 235 28% 6%;
     --foreground: 220 20% 96%;
 
