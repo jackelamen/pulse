@@ -1,14 +1,22 @@
 "use client";
 
+import { useRef } from "react";
 import { addDays, isSameDay, startOfWeek } from "@/lib/date";
 import { DayColumn, HourGutter } from "./day-column";
 import { GUTTER_PX } from "./calendar-grid";
+import { useInitialScroll } from "./use-initial-scroll";
+import { ymd } from "@/lib/tasks/recurrence";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
 export function WeekView({ anchor, instances }: { anchor: Date; instances: VirtualTask[] }) {
   const start = startOfWeek(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const today = new Date();
+  const scroller = useRef<HTMLDivElement>(null);
+  useInitialScroll(scroller, {
+    dayKey: ymd(start),
+    showsToday: days.some((d) => isSameDay(d, today)),
+  });
 
   return (
     <div className="flex h-full flex-col">
@@ -36,7 +44,7 @@ export function WeekView({ anchor, instances }: { anchor: Date; instances: Virtu
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 overflow-y-auto">
+      <div ref={scroller} className="flex flex-1 overflow-y-auto">
         <HourGutter />
         <div className="grid flex-1 grid-cols-7 divide-x divide-border">
           {days.map((d) => (

@@ -1,11 +1,17 @@
 "use client";
 
+import { useRef } from "react";
 import { DayColumn, HourGutter } from "./day-column";
+import { useInitialScroll } from "./use-initial-scroll";
 import { isSameDay } from "@/lib/date";
+import { ymd } from "@/lib/tasks/recurrence";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
 export function DayView({ date, instances }: { date: Date; instances: VirtualTask[] }) {
   const today = isSameDay(date, new Date());
+  const scroller = useRef<HTMLDivElement>(null);
+  useInitialScroll(scroller, { dayKey: ymd(date), showsToday: today });
+
   return (
     /*
      * The gutter and the day column must live inside the SAME scroll
@@ -15,7 +21,7 @@ export function DayView({ date, instances }: { date: Date; instances: VirtualTas
      * the wrong time. (The week view already nested them correctly, which is
      * why only the day view was affected.)
      */
-    <div className="flex h-full overflow-y-auto">
+    <div ref={scroller} className="flex h-full overflow-y-auto">
       <HourGutter />
       <div className="flex-1">
         <DayColumn date={date} instances={instances} isToday={today} showHours={false} />
