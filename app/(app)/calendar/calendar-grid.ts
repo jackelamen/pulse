@@ -10,6 +10,13 @@ export const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
 export const SLOTS_PER_DAY = 24 * SLOTS_PER_HOUR; // 96
 export const SLOT_PX = 12; // 12px per 15-min slot = 48px/hour
 export const HOUR_PX = SLOT_PX * SLOTS_PER_HOUR;
+/**
+ * Width of the hour gutter. Shared so the week view's header spacer stays
+ * locked to it -- the value was previously written as a bare 40 in both
+ * day-column.tsx and week-view.tsx, so the columns drifted out of alignment
+ * the moment either one changed.
+ */
+export const GUTTER_PX = 58;
 
 /** Convert "minutes since midnight" → vertical pixel offset. */
 export function minutesToPx(min: number): number {

@@ -2,6 +2,7 @@
 
 import { addDays, isSameDay, startOfWeek } from "@/lib/date";
 import { DayColumn, HourGutter } from "./day-column";
+import { GUTTER_PX } from "./calendar-grid";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
 export function WeekView({ anchor, instances }: { anchor: Date; instances: VirtualTask[] }) {
@@ -13,7 +14,7 @@ export function WeekView({ anchor, instances }: { anchor: Date; instances: Virtu
     <div className="flex h-full flex-col">
       {/* Header row with day labels */}
       <div className="flex shrink-0 border-b border-border bg-muted/20">
-        <div style={{ width: 40 }} />
+        <div className="shrink-0" style={{ width: GUTTER_PX }} />
         <div className="grid flex-1 grid-cols-7 divide-x divide-border">
           {days.map((d) => {
             const isToday = isSameDay(d, today);

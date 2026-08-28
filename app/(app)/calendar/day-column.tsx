@@ -2,8 +2,8 @@
 
 import { useRef } from "react";
 import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
-import { formatTime, isSameDay, taskAnchor } from "@/lib/date";
-import { HOUR_PX, SLOTS_PER_DAY, SLOT_MINUTES, SLOT_PX, snapMinutes } from "./calendar-grid";
+import { isSameDay, taskAnchor } from "@/lib/date";
+import { GUTTER_PX, HOUR_PX, SLOTS_PER_DAY, SLOT_MINUTES, SLOT_PX, snapMinutes } from "./calendar-grid";
 import { EventBlock } from "./event-block";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
@@ -88,7 +88,7 @@ export function DayColumn({
       ref={ref}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className="relative overflow-y-auto"
+      className="relative"
       style={{ height: HOUR_PX * 24 }}
     >
       {/* Hour grid lines */}
@@ -177,24 +177,32 @@ function layoutLanes(timed: VirtualTask[]) {
 
 export function HourGutter() {
   return (
-    <div className="relative shrink-0" style={{ width: 40, height: HOUR_PX * 24 }}>
+    <div
+      className="relative shrink-0 select-none"
+      style={{ width: GUTTER_PX, height: HOUR_PX * 24 }}
+    >
       {Array.from({ length: 24 }).map((_, h) => (
         <div
           key={h}
-          className="absolute left-0 right-0 text-right text-[10px] text-muted-foreground/70"
+          className="absolute left-0 right-0 whitespace-nowrap text-right font-mono text-[10px] tabular-nums text-muted-foreground"
           style={{ top: h * HOUR_PX - 6 }}
         >
-          <span className="pr-1.5">{h === 0 ? "" : formatHour(h)}</span>
+          <span className="pr-2">{h === 0 ? "" : formatHour(h)}</span>
         </div>
       ))}
     </div>
   );
 }
 
+/**
+ * Hour only ("1 AM"), not "1:00 AM": the minutes are always zero on a gutter
+ * label, and the longer string wrapped onto two lines in the narrow column,
+ * which broke the vertical alignment between a label and its own hour line.
+ */
 function formatHour(h: number) {
   const d = new Date();
   d.setHours(h, 0, 0, 0);
-  return formatTime(d);
+  return d.toLocaleTimeString(undefined, { hour: "numeric" });
 }
 
 /* tiny helper exposed for other views */
