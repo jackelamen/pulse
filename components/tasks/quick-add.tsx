@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Flag, Hash, Plus, Timer } from "lucide-react";
+import { CalendarClock, Flag, Hash, Layers, Plus, Repeat, Timer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { parseQuickAdd } from "@/lib/tasks/parse-quick-add";
 import { useCreateTask } from "@/lib/tasks/queries";
+import { useLists } from "@/lib/lists/queries";
+import { recurrenceLabel } from "@/lib/tasks/recurrence";
 import type { TaskInsert } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +29,7 @@ export function QuickAdd({
   defaultListId = null,
   defaultTags = [],
   autoFocus = false,
-  placeholder = "Add task — try `Email Sarah tomorrow 9am !high #work`",
+  placeholder = "Add task — try `Email Sarah tomorrow 9am !high #work ~launch`",
   variant = "inline",
   onSubmitted,
   className,
@@ -36,8 +38,12 @@ export function QuickAdd({
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLInputElement>(null);
   const create = useCreateTask();
+  const lists = useLists();
 
-  const parsed = useMemo(() => parseQuickAdd(value), [value]);
+  const parsed = useMemo(
+    () => parseQuickAdd(value, new Date(), lists.data ?? []),
+    [value, lists.data]
+  );
 
   useEffect(() => {
     if (autoFocus) ref.current?.focus();
@@ -54,7 +60,11 @@ export function QuickAdd({
       start_at: parsed.start_at,
       due_at: parsed.due_at,
       duration_minutes: parsed.duration_minutes,
-      list_id: defaultListId ?? null,
+      // An explicit ~project in the text wins over the panel's default list
+      // (e.g. quick-adding into a specific project view but redirecting
+      // this one task elsewhere).
+      list_id: parsed.list_id ?? defaultListId ?? null,
+      recurrence_rule: parsed.recurrence_rule,
     };
     try {
       await create.mutateAsync(insert);
@@ -102,11 +112,22 @@ export function QuickAdd({
       </form>
 
       {value.trim() &&
-        (parsed.start_at || parsed.due_at || parsed.duration_minutes || parsed.priority > 0 || parsed.tags.length > 0) && (
+        (parsed.start_at ||
+          parsed.due_at ||
+          parsed.duration_minutes ||
+          parsed.priority > 0 ||
+          parsed.tags.length > 0 ||
+          parsed.list_id ||
+          parsed.recurrence_rule) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3 text-[11px] text-muted-foreground">
           {(parsed.start_at || parsed.due_at) && (
             <Chip icon={<CalendarClock className="h-3 w-3" />}>
               {previewDate((parsed.start_at ?? parsed.due_at)!)}
+            </Chip>
+          )}
+          {parsed.recurrence_rule && (
+            <Chip icon={<Repeat className="h-3 w-3" />}>
+              {recurrenceLabel(parsed.recurrence_rule)}
             </Chip>
           )}
           {parsed.duration_minutes && (
@@ -118,6 +139,9 @@ export function QuickAdd({
             <Chip icon={<Flag className="h-3 w-3" />}>
               {parsed.priority === 3 ? "High" : parsed.priority === 2 ? "Medium" : "Low"}
             </Chip>
+          )}
+          {parsed.list_name && (
+            <Chip icon={<Layers className="h-3 w-3" />}>{parsed.list_name}</Chip>
           )}
           {parsed.tags.map((tag) => (
             <Chip key={tag} icon={<Hash className="h-3 w-3" />}>

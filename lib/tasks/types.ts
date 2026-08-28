@@ -28,8 +28,8 @@ export type TaskEditableFields = Partial<
 >;
 
 /**
- * Result of parsing a quick-add string. The parser strips date/priority/tag
- * tokens from the title and returns them separately.
+ * Result of parsing a quick-add string. The parser strips date/priority/tag/
+ * project/recurrence tokens from the title and returns them separately.
  */
 export interface ParsedQuickAdd {
   title: string;
@@ -38,6 +38,10 @@ export interface ParsedQuickAdd {
   duration_minutes: number | null;
   priority: Priority;
   tags: string[];
+  list_id: string | null;
+  /** Matched project name, for chip preview -- list_id alone isn't human-readable. */
+  list_name: string | null;
+  recurrence_rule: string | null;
 }
 
 export type ScopeKey =

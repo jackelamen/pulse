@@ -1,21 +1,35 @@
 import type { Priority } from "@/types/database";
 import type { ParsedQuickAdd } from "./types";
+import { RECURRENCE_PRESETS } from "./recurrence";
 
 /**
  * Parse a quick-add string into title + structured fields.
  *
  * Supported patterns (all optional, in any order, anywhere in the string):
- *   priority   !high | !med | !low  |  !1 | !2 | !3  (3 = highest)
- *   tags       #work #home #deep-work
- *   dates      today, tonight, tomorrow, tmrw, mon..sun,
- *              "next monday", "in 3 days", "in 2 weeks",
- *              optional clock time "9am", "9:30am", "15:00"
- *   duration   for 30m, for 1h, 45m, 1h30m
+ *   priority    !high | !med | !low  |  !1 | !2 | !3  (3 = highest)
+ *   tags        #work #home #deep-work
+ *   project     ~launch  (matched against the caller's real project list --
+ *               see `lists` below; an unrecognized ~token is left in the
+ *               title untouched rather than silently eaten)
+ *   recurrence  every day, every weekday(s), every week, every month,
+ *               every year, every mon..sun (requires the "every" -- bare
+ *               "daily"/"weekly"/etc are ordinary English words that show up
+ *               in real task titles, e.g. "Read the Daily Digest")
+ *   dates       today, tonight, tomorrow, tmrw, mon..sun,
+ *               "next monday", "in 3 days", "in 2 weeks",
+ *               optional clock time "9am", "9:30am", "15:00"
+ *   duration    for 30m, for 1h, 45m, 1h30m
  *
- * Pure function — no Date side effects beyond reading `now` (passed in for tests).
+ * Pure aside from resolving `~project` against the `lists` passed in --
+ * unlike tags, projects are an existing set the app already knows, not
+ * free text, so there is nothing to invent a slug for.
  * Returns a normalized title (tokens stripped, whitespace collapsed).
  */
-export function parseQuickAdd(input: string, now: Date = new Date()): ParsedQuickAdd {
+export function parseQuickAdd(
+  input: string,
+  now: Date = new Date(),
+  lists: Array<{ id: string; name: string }> = []
+): ParsedQuickAdd {
   let title = input;
   let priority: Priority = 0;
   const tags = new Set<string>();
@@ -23,6 +37,9 @@ export function parseQuickAdd(input: string, now: Date = new Date()): ParsedQuic
   let due_at: string | null = null;
   let duration_minutes: number | null = null;
   let parsedTime: { h: number; m: number } | null = null;
+  let list_id: string | null = null;
+  let list_name: string | null = null;
+  let recurrence_rule: string | null = null;
 
   // ---- priority ---------------------------------------------------
   title = title.replace(/(?:^|\s)!(high|med|medium|low|[1-3])(?=\s|$)/gi, (_match, raw) => {
@@ -38,6 +55,54 @@ export function parseQuickAdd(input: string, now: Date = new Date()): ParsedQuic
     tags.add(String(tag).toLowerCase());
     return " ";
   });
+
+  // ---- project ------------------------------------------------------
+  // `~slug` is matched against the caller's actual projects, not invented.
+  // An exact slug match wins; failing that, a ~prefix that resolves to
+  // exactly one project is accepted so short typing still works. A ~token
+  // that matches nothing or matches more than one project is left in the
+  // title -- eating it would silently discard whatever the person typed.
+  const projectMatch = title.match(/(?:^|\s)~([a-z0-9][a-z0-9-]*)(?=\s|$)/i);
+  if (projectMatch && lists.length > 0) {
+    const typed = projectMatch[1].toLowerCase();
+    const slugged = lists.map((l) => ({ ...l, slug: slugify(l.name) }));
+    const exact = slugged.find((l) => l.slug === typed);
+    const prefixMatches = exact ? [] : slugged.filter((l) => l.slug.startsWith(typed));
+    const match = exact ?? (prefixMatches.length === 1 ? prefixMatches[0] : null);
+    if (match) {
+      list_id = match.id;
+      list_name = match.name;
+      title = title.replace(projectMatch[0], " ");
+    }
+  }
+
+  // ---- recurrence -----------------------------------------------------
+  // Requires the "every" -- see the doc comment above for why bare
+  // "daily"/"weekly"/"monthly" aren't recognized on their own.
+  const everyWeekday = title.match(
+    /(?:^|\s)every\s+(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)\b/i
+  );
+  if (everyWeekday) {
+    const code = RRULE_WEEKDAY_CODES[everyWeekday[1].toLowerCase()];
+    recurrence_rule = `FREQ=WEEKLY;BYDAY=${code}`;
+    title = title.replace(everyWeekday[0], " ");
+  } else {
+    const everyFreq = title.match(/(?:^|\s)every\s+(day|weekday|weekdays|week|month|year)\b/i);
+    if (everyFreq) {
+      const unit = everyFreq[1].toLowerCase();
+      recurrence_rule =
+        unit === "day"
+          ? RECURRENCE_PRESETS.daily
+          : unit === "weekday" || unit === "weekdays"
+            ? RECURRENCE_PRESETS.weekdays
+            : unit === "week"
+              ? RECURRENCE_PRESETS.weekly
+              : unit === "month"
+                ? RECURRENCE_PRESETS.monthly
+                : RECURRENCE_PRESETS.yearly;
+      title = title.replace(everyFreq[0], " ");
+    }
+  }
 
   // ---- duration ---------------------------------------------------
   title = title.replace(
@@ -173,6 +238,15 @@ export function parseQuickAdd(input: string, now: Date = new Date()): ParsedQuic
     start_at = d.toISOString();
   }
 
+  // A recurring task with no anchor date is invisible everywhere -- the
+  // expander needs a start date to build the RRULE from and silently skips
+  // any template that has neither start_at nor due_at. "every mon" with no
+  // other date/time in the string would otherwise create a task that never
+  // shows up again, with nothing telling the person why.
+  if (recurrence_rule && !start_at && !due_at) {
+    due_at = startOfDay(now).toISOString();
+  }
+
   // ---- clean up ---------------------------------------------------
   title = title.replace(/\s+/g, " ").trim();
 
@@ -183,10 +257,43 @@ export function parseQuickAdd(input: string, now: Date = new Date()): ParsedQuic
     duration_minutes,
     priority,
     tags: Array.from(tags),
+    list_id,
+    list_name,
+    recurrence_rule,
   };
 }
 
 /* helpers */
+
+/** MO/TU/.../SU in `dayMap` order (0=Sun..6=Sat), for building BYDAY. */
+const RRULE_WEEKDAY_CODES: Record<string, string> = {
+  sun: "SU",
+  sunday: "SU",
+  mon: "MO",
+  monday: "MO",
+  tue: "TU",
+  tues: "TU",
+  tuesday: "TU",
+  wed: "WE",
+  weds: "WE",
+  wednesday: "WE",
+  thu: "TH",
+  thur: "TH",
+  thurs: "TH",
+  thursday: "TH",
+  fri: "FR",
+  friday: "FR",
+  sat: "SA",
+  saturday: "SA",
+};
+
+/** Lowercase, non-alphanumeric runs -> single hyphen, trimmed -- for comparing a typed ~slug against a project's display name. */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function startOfDay(d: Date) {
   const x = new Date(d);

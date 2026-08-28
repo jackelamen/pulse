@@ -37,7 +37,7 @@ export function QuickAddOverlay() {
           onSubmitted={closeQuickAdd}
         />
         <p className="mt-2 text-center text-[11px] text-white/70">
-          Try <span className="pulse-kbd">tomorrow 9am !high #work</span> · Esc to close
+          Try <span className="pulse-kbd">tomorrow 9am !high #work ~launch every mon</span> · Esc to close
         </p>
       </div>
     </div>
