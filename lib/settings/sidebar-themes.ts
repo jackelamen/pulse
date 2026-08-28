@@ -1,51 +1,79 @@
+/**
+ * Sidebar themes.
+ *
+ * The sidebar is chrome: its job is to hold the nav and recede, never to
+ * compete with the content beside it. Every theme therefore shares one
+ * envelope, measured off Midnight -- lightness 21/28/33% across the three
+ * stops (a 12-point range) at roughly 51/48/44% saturation -- and hue is the
+ * only variable between them.
+ *
+ * This replaced six independently-chosen gradients that ramped from near-black
+ * into a bright, high-chroma endpoint: Indigo spanned 40 lightness points up to
+ * L=59%, Violet 35, and Ocean reached 91% saturation. At those values the
+ * navigation glowed brighter than the tasks it framed and read as garish
+ * rather than quiet. Keep new themes inside the envelope; if a hue needs to
+ * look right at a different lightness, move the hue, not the range.
+ *
+ * Green and cyan read lighter than blue at equal lightness, so Ocean and
+ * Forest sit two points lower to match perceived weight.
+ *
+ * White is the text colour on these surfaces; every theme keeps it at 6.7:1 or
+ * better against its lightest stop.
+ *
+ * `hero` and `heroDark` are the matching content-panel surfaces on Today,
+ * applied by SettingsRuntime. They sit in the darker half of the same ramp so a
+ * panel anchors rather than glows, and never introduce a hue of their own.
+ *
+ * Preview strings must stay literal -- Tailwind scans this file for them.
+ */
 export const SIDEBAR_THEMES = {
-  // Default navy — the most readable, used as the baseline
+  /** Default. Its measured envelope is the spec every other theme follows. */
   midnight: {
     label: "Midnight",
     rail: "linear-gradient(180deg, #1a2550 0%, #253568 48%, #303b7a 100%)",
-    hero: "linear-gradient(135deg, #16203f 0%, #253568 100%)",
-    heroDark: "linear-gradient(135deg, #111834 0%, #1d2a55 100%)",
+    hero: "linear-gradient(135deg, #151e41 0%, #25356a 100%)",
+    heroDark: "linear-gradient(135deg, #111936 0%, #1e2c57 100%)",
     preview: "bg-[linear-gradient(135deg,#1a2550,#303b7a)]",
   },
-  // Purple/indigo — requested
+  /** Blue-violet, one clear step off Midnight. */
   indigo: {
     label: "Indigo",
-    rail: "linear-gradient(180deg, #1e1152 0%, #3730a3 48%, #4f46e5 100%)",
-    hero: "linear-gradient(135deg, #1a0f47 0%, #3730a3 100%)",
-    heroDark: "linear-gradient(135deg, #150c39 0%, #2a2680 100%)",
-    preview: "bg-[linear-gradient(135deg,#1e1152,#4f46e5)]",
+    rail: "linear-gradient(180deg, #271a51 0%, #34256a 48%, #442f79 100%)",
+    hero: "linear-gradient(135deg, #1f1542 0%, #34256a 100%)",
+    heroDark: "linear-gradient(135deg, #1a1136 0%, #2b1e57 100%)",
+    preview: "bg-[linear-gradient(135deg,#271a51,#442f79)]",
   },
-  // Deep purple to violet
+  /** Plum. Pushed toward magenta so it reads distinctly from Indigo. */
   violet: {
     label: "Violet",
-    rail: "linear-gradient(180deg, #2e1065 0%, #5b21b6 48%, #7c3aed 100%)",
-    hero: "linear-gradient(135deg, #260d54 0%, #5b21b6 100%)",
-    heroDark: "linear-gradient(135deg, #1e0a43 0%, #451a8c 100%)",
-    preview: "bg-[linear-gradient(135deg,#2e1065,#7c3aed)]",
+    rail: "linear-gradient(180deg, #451b50 0%, #592768 48%, #6d3177 100%)",
+    hero: "linear-gradient(135deg, #381641 0%, #592768 100%)",
+    heroDark: "linear-gradient(135deg, #2e1236 0%, #492056 100%)",
+    preview: "bg-[linear-gradient(135deg,#451b50,#6d3177)]",
   },
-  // Dark teal — readable, calm
+  /** Deep teal. Hue shifts cyan-ward as it lightens. Two lightness points lower for perceptual weight. */
   ocean: {
     label: "Ocean",
-    rail: "linear-gradient(180deg, #0a2540 0%, #0e4f6b 48%, #0891b2 100%)",
-    hero: "linear-gradient(135deg, #08203a 0%, #0e4f6b 100%)",
-    heroDark: "linear-gradient(135deg, #06182b 0%, #0b3e54 100%)",
-    preview: "bg-[linear-gradient(135deg,#0a2540,#0891b2)]",
+    rail: "linear-gradient(180deg, #17374a 0%, #225063 48%, #2b6373 100%)",
+    hero: "linear-gradient(135deg, #122c3a 0%, #225063 100%)",
+    heroDark: "linear-gradient(135deg, #0f232f 0%, #1b4150 100%)",
+    preview: "bg-[linear-gradient(135deg,#17374a,#2b6373)]",
   },
-  // Near-black with warm undertone — easy to read
+  /** Near-neutral slate for anyone who wants no hue at all. */
   graphite: {
     label: "Graphite",
-    rail: "linear-gradient(180deg, #111827 0%, #1e2533 52%, #2d3748 100%)",
-    hero: "linear-gradient(135deg, #0e1420 0%, #1e2533 100%)",
-    heroDark: "linear-gradient(135deg, #0b1018 0%, #181e29 100%)",
-    preview: "bg-[linear-gradient(135deg,#111827,#2d3748)]",
+    rail: "linear-gradient(180deg, #272b35 0%, #353a46 48%, #414853 100%)",
+    hero: "linear-gradient(135deg, #1e2229 0%, #353a46 100%)",
+    heroDark: "linear-gradient(135deg, #181b21 0%, #2a2e37 100%)",
+    preview: "bg-[linear-gradient(135deg,#272b35,#414853)]",
   },
-  // Dark forest green
+  /** Muted deep green. Two lightness points lower for perceptual weight. */
   forest: {
     label: "Forest",
-    rail: "linear-gradient(180deg, #052e16 0%, #14532d 48%, #166534 100%)",
-    hero: "linear-gradient(135deg, #04270f 0%, #14532d 100%)",
-    heroDark: "linear-gradient(135deg, #031d0c 0%, #0f3f22 100%)",
-    preview: "bg-[linear-gradient(135deg,#052e16,#166534)]",
+    rail: "linear-gradient(180deg, #1b4134 0%, #255543 48%, #30644d 100%)",
+    hero: "linear-gradient(135deg, #153329 0%, #255543 100%)",
+    heroDark: "linear-gradient(135deg, #102820 0%, #1e4335 100%)",
+    preview: "bg-[linear-gradient(135deg,#1b4134,#30644d)]",
   },
 } as const;
 
