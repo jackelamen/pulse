@@ -18,7 +18,7 @@
  * assets and the offline fallback are cached.
  */
 
-const CACHE_NAME = "pulse-shell-v8";
+const CACHE_NAME = "pulse-shell-v9";
 const SHELL_URLS = [
   "/offline.html",
   "/icons/pulse.svg",
