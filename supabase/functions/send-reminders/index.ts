@@ -205,7 +205,10 @@ Deno.serve(async (req) => {
       title: task.title,
       body: task.due_at ? `Due ${formatDue(task.due_at)}` : "Reminder",
       taskId: task.id,
-      url: "/today",
+      // Deep link straight to the task the reminder is about; the `?task=`
+      // param is picked up by TaskDeepLink (components/app-shell/task-deep-link.tsx),
+      // which opens the task panel and then strips the param.
+      url: `/today?task=${task.id}`,
     });
 
     let delivered = false;

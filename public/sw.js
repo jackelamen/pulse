@@ -136,7 +136,7 @@ self.addEventListener("push", (event) => {
       // intensity, which is governed by the OS and device settings.
       vibrate: [400, 150, 400, 150, 400],
       requireInteraction: true,
-      data: { url },
+      data: { url, taskId },
     })
   );
 });
@@ -144,19 +144,41 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url ?? "/today";
+  const targetHref = new URL(targetUrl, self.location.origin).href;
+
   event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clients) => {
-        // Focus an existing Pulse window if one is open.
-        for (const client of clients) {
-          if (new URL(client.url).origin === self.location.origin) {
-            client.focus();
-            client.navigate(targetUrl);
-            return;
-          }
+    (async () => {
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      const sameOrigin = clients.filter(
+        (client) => new URL(client.url).origin === self.location.origin
+      );
+
+      // A window already sitting on the target URL only needs focus.
+      const exact = sameOrigin.find((client) => client.url === targetHref);
+      if (exact) return exact.focus();
+
+      // Otherwise steer an existing Pulse window to the target. `navigate()`
+      // REJECTS for a client this service worker doesn't control - which
+      // `includeUncontrolled: true` deliberately lets through - so an
+      // unawaited call would silently leave the window on whatever page it
+      // was already showing, which is exactly what a click then looks like:
+      // the app comes to the front on a stale page and nothing loads.
+      for (const client of sameOrigin) {
+        try {
+          const navigated = await client.navigate(targetUrl);
+          await (navigated ?? client).focus();
+          return;
+        } catch {
+          // Uncontrolled or otherwise un-navigable - try the next window,
+          // and fall through to openWindow if none of them work.
         }
-        return self.clients.openWindow(targetUrl);
-      })
+      }
+
+      return self.clients.openWindow(targetUrl);
+    })()
   );
 });
