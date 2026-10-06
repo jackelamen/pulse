@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Plus, Folder as FolderIcon } from "lucide-react";
+import { ChevronRight, Plus, Folder as FolderIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useLists,
@@ -11,6 +11,8 @@ import {
   useCreateList,
   useCreateFolder,
   useToggleFolder,
+  useDeleteFolder,
+  useRenameFolder,
 } from "@/lib/lists/queries";
 import type { List } from "@/lib/lists/types";
 
@@ -20,6 +22,9 @@ export function SidebarLists() {
   const createList = useCreateList();
   const createFolder = useCreateFolder();
   const toggleFolder = useToggleFolder();
+  const deleteFolder = useDeleteFolder();
+  const renameFolder = useRenameFolder();
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const path = usePathname();
   const [creatingList, setCreatingList] = useState<{ folderId: string | null } | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -76,7 +81,34 @@ export function SidebarLists() {
               <ChevronRight
                 className={cn("h-3 w-3 transition-transform", !folder.collapsed && "rotate-90")}
               />
-              <span className="truncate">{folder.name}</span>
+              {renamingId === folder.id ? (
+                <input
+                  autoFocus
+                  defaultValue={folder.name}
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    setRenamingId(null);
+                    if (v && v !== folder.name) renameFolder.mutate({ id: folder.id, name: v });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    else if (e.key === "Escape") setRenamingId(null);
+                  }}
+                  className="w-full rounded border border-border bg-card px-1 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-ring"
+                />
+              ) : (
+                <span
+                  className="truncate"
+                  title="Double-click to rename"
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setRenamingId(folder.id);
+                  }}
+                >
+                  {folder.name}
+                </span>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -86,6 +118,21 @@ export function SidebarLists() {
                 aria-label="Add project to group"
               >
                 <Plus className="h-3 w-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const n = children.length;
+                  const msg = n
+                    ? `Delete group "${folder.name}"? Its ${n} project${n === 1 ? "" : "s"} will move out of the group (not deleted).`
+                    : `Delete group "${folder.name}"?`;
+                  if (window.confirm(msg)) deleteFolder.mutate(folder.id);
+                }}
+                className="rounded p-0.5 opacity-0 hover:bg-muted hover:text-destructive group-hover:opacity-100"
+                aria-label="Delete group"
+                title="Delete group"
+              >
+                <Trash2 className="h-3 w-3" />
               </button>
             </button>
             {!folder.collapsed && (

@@ -7,19 +7,30 @@ import { Button } from "@/components/ui/button";
 import { QuickAdd } from "@/components/tasks/quick-add";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskRow } from "@/components/tasks/task-row";
-import { useList, useUpdateList, useDeleteList } from "@/lib/lists/queries";
+import { useList, useUpdateList, useDeleteList, useFolders } from "@/lib/lists/queries";
 import { useListTasks } from "@/lib/tasks/queries";
 import type { Task } from "@/lib/tasks/types";
 import { cn } from "@/lib/utils";
 
 const COLORS = [
   "#f25c2a", // pulse coral
-  "#10b981", // emerald
-  "#3b82f6", // blue
-  "#8b5cf6", // violet
+  "#ef4444", // red
+  "#f97316", // orange
   "#f59e0b", // amber
+  "#eab308", // yellow
+  "#84cc16", // lime
+  "#10b981", // emerald
+  "#14b8a6", // teal
+  "#06b6d4", // cyan
+  "#3b82f6", // blue
+  "#6366f1", // indigo
+  "#8b5cf6", // violet
+  "#d946ef", // fuchsia
   "#ec4899", // pink
+  "#f43f5e", // rose
+  "#a16207", // brown
   "#6b7280", // slate
+  "#ffffff", // white
 ];
 
 type ViewMode = "list" | "board";
@@ -112,7 +123,11 @@ export function ListClient({ listId }: { listId: string }) {
           >
             <KanbanSquare className="h-4 w-4" />
           </Button>
-          <Menu projectName={data.name} onDelete={async () => {
+          <Menu
+            projectName={data.name}
+            folderId={data.folder_id ?? null}
+            onMove={(folder_id) => update.mutate({ id: listId, patch: { folder_id } })}
+            onDelete={async () => {
             await remove.mutateAsync(listId);
             router.push("/today");
           }} />
@@ -146,7 +161,7 @@ function ColorDot({ color, onPick }: { color: string; onPick: (c: string) => voi
       />
       {open && (
         <div
-          className="pulse-pane absolute left-0 top-6 z-10 flex gap-1.5 p-2 shadow-lg"
+          className="pulse-pane absolute left-0 top-6 z-10 grid w-max grid-cols-6 gap-1.5 p-2 shadow-lg"
           onMouseLeave={() => setOpen(false)}
         >
           {COLORS.map((c) => (
@@ -167,8 +182,19 @@ function ColorDot({ color, onPick }: { color: string; onPick: (c: string) => voi
   );
 }
 
-function Menu({ onDelete, projectName }: { onDelete: () => void; projectName: string }) {
+function Menu({
+  onDelete,
+  onMove,
+  projectName,
+  folderId,
+}: {
+  onDelete: () => void;
+  onMove: (folderId: string | null) => void;
+  projectName: string;
+  folderId: string | null;
+}) {
   const [open, setOpen] = useState(false);
+  const folders = useFolders().data ?? [];
   return (
     <div className="relative">
       <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)} aria-label="More">
@@ -176,9 +202,26 @@ function Menu({ onDelete, projectName }: { onDelete: () => void; projectName: st
       </Button>
       {open && (
         <div
-          className="pulse-pane absolute right-0 top-9 z-10 w-40 p-1 shadow-lg"
-          onMouseLeave={() => setOpen(false)}
+          className="pulse-pane absolute right-0 top-9 z-10 w-48 p-1 shadow-lg"
         >
+          <label className="block px-2 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Group
+            <select
+              value={folderId ?? ""}
+              onChange={(e) => {
+                onMove(e.target.value || null);
+                setOpen(false);
+              }}
+              className="mt-1 w-full rounded-md border border-border bg-card px-1.5 py-1 text-sm normal-case tracking-normal text-foreground"
+            >
+              <option value="">No group</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             onClick={() => {
               setOpen(false);

@@ -136,6 +136,41 @@ export function useCreateFolder() {
   });
 }
 
+export function useDeleteFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Folders are soft-deleted, so the FK's ON DELETE SET NULL never fires —
+    // move the projects back to the root first so they don't vanish.
+    mutationFn: async (folderId: string) => {
+      const { error: e1 } = await supabase()
+        .from("lists")
+        .update({ folder_id: null })
+        .eq("folder_id", folderId);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase()
+        .from("folders")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", folderId);
+      if (e2) throw e2;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: folderKeys.all });
+      qc.invalidateQueries({ queryKey: listKeys.all });
+    },
+  });
+}
+
+export function useRenameFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase().from("folders").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: folderKeys.all }),
+  });
+}
+
 export function useToggleFolder() {
   const qc = useQueryClient();
   return useMutation({
