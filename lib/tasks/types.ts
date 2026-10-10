@@ -22,6 +22,7 @@ export type TaskEditableFields = Partial<
     | "due_at"
     | "duration_minutes"
     | "all_day"
+    | "busy"
     | "reminder_at"
     | "tags"
   >
@@ -36,6 +37,10 @@ export interface ParsedQuickAdd {
   start_at: string | null;
   due_at: string | null;
   duration_minutes: number | null;
+  /** True when the task is an all-day item; start_at is then the day's anchor (see `allDayAnchor`). */
+  all_day: boolean;
+  /** Resolved busy/free: explicit `!busy`/`!free`, else free for all-day and busy for timed. */
+  busy: boolean;
   priority: Priority;
   tags: string[];
   list_id: string | null;

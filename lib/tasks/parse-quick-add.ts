@@ -1,6 +1,7 @@
 import type { Priority } from "@/types/database";
 import type { ParsedQuickAdd } from "./types";
 import { RECURRENCE_PRESETS } from "./recurrence";
+import { allDayAnchor } from "@/lib/date";
 
 /**
  * Parse a quick-add string into title + structured fields.
@@ -17,7 +18,14 @@ import { RECURRENCE_PRESETS } from "./recurrence";
  *               in real task titles, e.g. "Read the Daily Digest")
  *   dates       today, tonight, tomorrow, tmrw, mon..sun,
  *               "next monday", "in 3 days", "in 2 weeks",
+ *               absolute: 2026-10-25, 10/25, 10/25/26, "oct 25",
+ *               "october 25th 2027", "25 oct". Month-first numeric (US);
+ *               a year-less date that has already passed rolls to next year.
  *               optional clock time "9am", "9:30am", "15:00"
+ *   all day     "all day" / "all-day" / "allday" -- an all-day item on the
+ *               parsed date (today if none). Any clock time is ignored.
+ *   busy/free   !busy | !free. Defaults to free for all-day items and busy
+ *               for timed ones, same as Google Calendar.
  *   duration    for 30m, for 1h, 45m, 1h30m
  *
  * Pure aside from resolving `~project` against the `lists` passed in --
@@ -40,6 +48,8 @@ export function parseQuickAdd(
   let list_id: string | null = null;
   let list_name: string | null = null;
   let recurrence_rule: string | null = null;
+  let all_day = false;
+  let busyExplicit: boolean | null = null;
 
   // ---- priority ---------------------------------------------------
   title = title.replace(/(?:^|\s)!(high|med|medium|low|[1-3])(?=\s|$)/gi, (_match, raw) => {
@@ -47,6 +57,16 @@ export function parseQuickAdd(
     if (v === "high" || v === "3") priority = 3;
     else if (v === "med" || v === "medium" || v === "2") priority = 2;
     else if (v === "low" || v === "1") priority = 1;
+    return " ";
+  });
+
+  // ---- busy / free + all day ------------------------------------------
+  title = title.replace(/(?:^|\s)!(busy|free)(?=\s|$)/gi, (_m, raw) => {
+    busyExplicit = String(raw).toLowerCase() === "busy";
+    return " ";
+  });
+  title = title.replace(/(?:^|\s)all[\s-]?day\b/i, () => {
+    all_day = true;
     return " ";
   });
 
@@ -168,7 +188,15 @@ export function parseQuickAdd(
 
   let dueDate: Date | null = null;
 
-  const inN = title.match(/(?:^|\s)in\s+(\d{1,3})\s+(day|days|week|weeks)\b/i);
+  // Absolute dates first: they're the most specific, and a bare month name
+  // or number must never be mistaken for a relative form below.
+  const absolute = matchAbsoluteDate(title, now);
+  if (absolute) {
+    dueDate = absolute.date;
+    title = title.replace(absolute.raw, " ");
+  }
+
+  const inN = dueDate ? null : title.match(/(?:^|\s)in\s+(\d{1,3})\s+(day|days|week|weeks)\b/i);
   if (inN) {
     const n = parseInt(inN[1], 10);
     const unit = inN[2].toLowerCase();
@@ -224,7 +252,13 @@ export function parseQuickAdd(
     }
   }
 
-  if (dueDate) {
+  if (all_day) {
+    // Anchored at local noon, not midnight -- see `allDayAnchor`. Time and
+    // duration make no sense on an all-day item, so they're dropped.
+    start_at = allDayAnchor(dueDate ?? startOfDay(now)).toISOString();
+    due_at = null;
+    duration_minutes = null;
+  } else if (dueDate) {
     if (parsedTime) {
       dueDate.setHours(parsedTime.h, parsedTime.m, 0, 0);
       start_at = dueDate.toISOString();
@@ -255,6 +289,8 @@ export function parseQuickAdd(
     start_at,
     due_at,
     duration_minutes,
+    all_day,
+    busy: busyExplicit ?? !all_day,
     priority,
     tags: Array.from(tags),
     list_id,
@@ -264,6 +300,66 @@ export function parseQuickAdd(
 }
 
 /* helpers */
+
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+  may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10,
+  dec: 11, december: 11,
+};
+const MONTH_RE =
+  "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
+
+/**
+ * Find an explicit calendar date in `text`. Returns the matched substring
+ * (leading whitespace included, so the caller can blank it) and the local
+ * midnight it resolves to, or null. A candidate that isn't a real date
+ * (13/40, feb 30) is rejected so it stays in the title instead of vanishing.
+ * With no year given, a date already past this year means next year.
+ */
+function matchAbsoluteDate(text: string, now: Date): { raw: string; date: Date } | null {
+  const today = startOfDay(now);
+  const build = (y: number | null, m: number, d: number): Date | null => {
+    const year = y ?? today.getFullYear();
+    const date = new Date(year, m, d);
+    if (date.getFullYear() !== year || date.getMonth() !== m || date.getDate() !== d) return null;
+    if (y === null && date < today) return new Date(year + 1, m, d);
+    return date;
+  };
+  const fullYear = (raw: string | undefined) =>
+    raw === undefined ? null : raw.length === 2 ? 2000 + parseInt(raw, 10) : parseInt(raw, 10);
+
+  const patterns: Array<[RegExp, (m: RegExpMatchArray) => Date | null]> = [
+    // 2026-10-25
+    [
+      /(?:^|\s)(\d{4})-(\d{1,2})-(\d{1,2})(?=\s|$)/,
+      (m) => build(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)),
+    ],
+    // 10/25, 10/25/26, 10/25/2026
+    [
+      /(?:^|\s)(\d{1,2})\/(\d{1,2})(?:\/(\d{4}|\d{2}))?(?=\s|$)/,
+      (m) => build(fullYear(m[3]), parseInt(m[1], 10) - 1, parseInt(m[2], 10)),
+    ],
+    // oct 25, october 25th, oct 25 2027, oct 25, 2027
+    [
+      new RegExp(`(?:^|\\s)(${MONTH_RE})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?(?=\\s|$)`, "i"),
+      (m) => build(fullYear(m[3]), MONTH_INDEX[m[1].toLowerCase()], parseInt(m[2], 10)),
+    ],
+    // 25 oct, 25th october 2027
+    [
+      new RegExp(`(?:^|\\s)(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MONTH_RE})\\.?(?:,?\\s+(\\d{4}))?(?=\\s|$)`, "i"),
+      (m) => build(fullYear(m[3]), MONTH_INDEX[m[2].toLowerCase()], parseInt(m[1], 10)),
+    ],
+  ];
+
+  for (const [re, toDate] of patterns) {
+    const m = text.match(re);
+    if (!m) continue;
+    const date = toDate(m);
+    if (date) return { raw: m[0], date };
+  }
+  return null;
+}
 
 /** MO/TU/.../SU in `dayMap` order (0=Sun..6=Sat), for building BYDAY. */
 const RRULE_WEEKDAY_CODES: Record<string, string> = {

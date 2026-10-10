@@ -83,6 +83,7 @@ export interface Database {
           due_at: string | null;
           duration_minutes: number | null;
           all_day: boolean;
+          busy: boolean;
           completed_at: string | null;
           recurrence_rule: string | null;
           recurrence_parent_id: string | null;
@@ -110,6 +111,7 @@ export interface Database {
           due_at?: string | null;
           duration_minutes?: number | null;
           all_day?: boolean;
+          busy?: boolean;
           completed_at?: string | null;
           recurrence_rule?: string | null;
           recurrence_parent_id?: string | null;

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { addDays, isSameDay, startOfWeek } from "@/lib/date";
 import { DayColumn, HourGutter } from "./day-column";
 import { GUTTER_PX } from "./calendar-grid";
+import { AllDayRow } from "./all-day-row";
 import { useInitialScroll } from "./use-initial-scroll";
 import { ymd } from "@/lib/tasks/recurrence";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
@@ -42,6 +43,8 @@ export function WeekView({ anchor, instances }: { anchor: Date; instances: Virtu
           })}
         </div>
       </div>
+
+      <AllDayRow days={days} instances={instances} />
 
       {/* Body */}
       <div ref={scroller} className="flex flex-1 overflow-y-auto">

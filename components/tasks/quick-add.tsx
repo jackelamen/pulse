@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Flag, Hash, Layers, Plus, Repeat, Timer } from "lucide-react";
+import { CalendarClock, CalendarDays, Flag, Hash, Layers, Plus, Repeat, Timer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { parseQuickAdd } from "@/lib/tasks/parse-quick-add";
@@ -29,7 +29,7 @@ export function QuickAdd({
   defaultListId = null,
   defaultTags = [],
   autoFocus = false,
-  placeholder = "Add task — try `Email Sarah tomorrow 9am !high #work ~launch`",
+  placeholder = "Add task — try `Email Sarah oct 25 9am !high #work ~launch` or `Offsite 11/3 all day`",
   variant = "inline",
   onSubmitted,
   className,
@@ -60,6 +60,8 @@ export function QuickAdd({
       start_at: parsed.start_at,
       due_at: parsed.due_at,
       duration_minutes: parsed.duration_minutes,
+      all_day: parsed.all_day,
+      busy: parsed.busy,
       // An explicit ~project in the text wins over the panel's default list
       // (e.g. quick-adding into a specific project view but redirecting
       // this one task elsewhere).
@@ -115,6 +117,7 @@ export function QuickAdd({
         (parsed.start_at ||
           parsed.due_at ||
           parsed.duration_minutes ||
+          parsed.all_day ||
           parsed.priority > 0 ||
           parsed.tags.length > 0 ||
           parsed.list_id ||
@@ -122,7 +125,12 @@ export function QuickAdd({
         <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3 text-[11px] text-muted-foreground">
           {(parsed.start_at || parsed.due_at) && (
             <Chip icon={<CalendarClock className="h-3 w-3" />}>
-              {previewDate((parsed.start_at ?? parsed.due_at)!)}
+              {previewDate((parsed.start_at ?? parsed.due_at)!, parsed.all_day)}
+            </Chip>
+          )}
+          {parsed.all_day && (
+            <Chip icon={<CalendarDays className="h-3 w-3" />}>
+              All day · {parsed.busy ? "Busy" : "Free"}
             </Chip>
           )}
           {parsed.recurrence_rule && (
@@ -190,7 +198,7 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
   );
 }
 
-function previewDate(iso: string) {
+function previewDate(iso: string, allDay = false) {
   const d = new Date(iso);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -201,9 +209,11 @@ function previewDate(iso: string) {
   if (diff === 0) label = "Today";
   else if (diff === 1) label = "Tomorrow";
   else if (diff > 1 && diff < 7) label = d.toLocaleDateString(undefined, { weekday: "long" });
+  else if (d.getFullYear() !== today.getFullYear())
+    label = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   else label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
   const sameMidnight = d.getHours() === 0 && d.getMinutes() === 0;
-  if (sameMidnight) return label;
+  if (allDay || sameMidnight) return label;
   return `${label} ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
 }

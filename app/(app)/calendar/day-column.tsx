@@ -5,6 +5,7 @@ import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
 import { isSameDay, taskAnchor } from "@/lib/date";
 import { GUTTER_PX, HOUR_PX, SLOTS_PER_DAY, SLOT_MINUTES, SLOT_PX, snapMinutes } from "./calendar-grid";
 import { EventBlock } from "./event-block";
+import { isAllDay } from "./all-day-row";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
 
 export function DayColumn({
@@ -23,6 +24,8 @@ export function DayColumn({
   const materialize = useMaterializeException();
 
   const dayInstances = instances.filter((t) => {
+    // All-day items live in the strip above the grid, not on the hour canvas.
+    if (isAllDay(t)) return false;
     const anchorIso = taskAnchor(t);
     const anchor = anchorIso ? new Date(anchorIso) : null;
     return anchor && isSameDay(anchor, date);
@@ -62,7 +65,7 @@ export function DayColumn({
       await materialize.mutateAsync({
         templateId: payload.taskId,
         occursOn: payload.occursOn,
-        patch: { start_at: target.toISOString(), duration_minutes: duration },
+        patch: { start_at: target.toISOString(), duration_minutes: duration, all_day: false },
       });
       return;
     }

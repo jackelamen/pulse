@@ -49,6 +49,9 @@ function syncStateForWrite(write: SyncableWrite): "pending" | "delete_pending" |
   // A materialized exception instance is covered by its series — don't sync it.
   if (write.recurrence_parent_id) return undefined;
 
+  // Note: an all_day / busy change must be sent together with start_at (the
+  // task detail panel does) so it re-syncs; on their own they can't say
+  // whether the task is scheduled, and guessing wrong would delete the event.
   const touchesSchedule =
     "start_at" in write || "due_at" in write || "recurrence_rule" in write;
   if (!touchesSchedule) return undefined;
@@ -507,6 +510,7 @@ export function useMaterializeException() {
         list_id: template.list_id,
         tags: template.tags ?? [],
         all_day: template.all_day,
+        busy: template.busy,
         duration_minutes: template.duration_minutes,
         start_at,
         due_at,

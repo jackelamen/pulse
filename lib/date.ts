@@ -82,6 +82,18 @@ export function taskAnchor(t: { start_at?: string | null; due_at?: string | null
   return t.start_at ?? t.due_at ?? null;
 }
 
+/**
+ * Anchor timestamp for an all-day task on `day`: local noon, not midnight.
+ * Midnight shifts to the previous UTC date for anyone east of UTC, which
+ * would put the Google all-day event (built from the UTC date) a day early;
+ * noon stays on the same calendar date for every offset from -11h to +11h.
+ */
+export function allDayAnchor(day: Date): Date {
+  const x = new Date(day);
+  x.setHours(12, 0, 0, 0);
+  return x;
+}
+
 export function dayLabel(d: Date, today: Date): string {
   const diff = Math.round((startOfDay(d).getTime() - startOfDay(today).getTime()) / 86400000);
   if (diff === 0) return "Today";

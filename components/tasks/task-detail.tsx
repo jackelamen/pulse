@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell, Archive, Briefcase } from "lucide-react";
+import { X, CalendarClock, Flag, Hash, Plus, Repeat, ListChecks, Timer, Trash2, Bell, Archive, Briefcase, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/tasks/queries";
 import { useLists } from "@/lib/lists/queries";
 import { useUi } from "@/lib/ui/store";
+import { allDayAnchor } from "@/lib/date";
 import {
   RECURRENCE_PRESETS,
   type RecurrencePreset,
@@ -88,6 +89,29 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
       return;
     }
     await update.mutateAsync({ id: templateId, patch });
+  }
+
+  /**
+   * Turning all-day on keeps the date (start, else due, else today), drops
+   * the duration, and defaults to Free -- the usual meaning of an all-day
+   * entry. Turning it off lands on 9am that day, busy again.
+   */
+  async function toggleAllDay(on: boolean) {
+    if (!value) return;
+    const anchor = value.start_at ?? value.due_at;
+    const day = anchor ? new Date(anchor) : new Date();
+    if (on) {
+      await persist({
+        all_day: true,
+        start_at: allDayAnchor(day).toISOString(),
+        duration_minutes: null,
+        busy: false,
+      });
+    } else {
+      const nine = new Date(day);
+      nine.setHours(9, 0, 0, 0);
+      await persist({ all_day: false, start_at: nine.toISOString(), busy: true });
+    }
   }
 
   async function addChecklistItem() {
@@ -252,22 +276,71 @@ function Panel({ selectedId, onClose }: { selectedId: string; onClose: () => voi
             />
           </Row>
 
-          <Row icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} label="Starts">
-            <input
-              type="datetime-local"
-              value={toLocalInput(value.start_at)}
-              onChange={(e) =>
-                persist({ start_at: fromLocalInput(e.target.value) })
-              }
-              className="rounded-md border border-border bg-card px-2 py-1 text-sm"
-            />
+          <Row icon={<CalendarDays className="h-4 w-4 text-muted-foreground" />} label="All day">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={value.all_day}
+                onChange={(e) => toggleAllDay(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="text-xs text-muted-foreground">
+                {value.all_day ? "Shows in the all-day row" : "Off"}
+              </span>
+            </label>
           </Row>
 
-          <Row icon={<Timer className="h-4 w-4 text-muted-foreground" />} label="Duration">
-            <DurationPicker
-              value={value.duration_minutes}
-              onChange={(duration) => persist({ duration_minutes: duration })}
-            />
+          <Row icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} label={value.all_day ? "Date" : "Starts"}>
+            {value.all_day ? (
+              <input
+                type="date"
+                value={toLocalInput(value.start_at).slice(0, 10)}
+                onChange={(e) =>
+                  persist({
+                    start_at: e.target.value
+                      ? allDayAnchor(new Date(`${e.target.value}T00:00`)).toISOString()
+                      : null,
+                  })
+                }
+                className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+              />
+            ) : (
+              <input
+                type="datetime-local"
+                value={toLocalInput(value.start_at)}
+                onChange={(e) =>
+                  persist({ start_at: fromLocalInput(e.target.value) })
+                }
+                className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+              />
+            )}
+          </Row>
+
+          {!value.all_day && (
+            <Row icon={<Timer className="h-4 w-4 text-muted-foreground" />} label="Duration">
+              <DurationPicker
+                value={value.duration_minutes}
+                onChange={(duration) => persist({ duration_minutes: duration })}
+              />
+            </Row>
+          )}
+
+          <Row icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} label="Show as">
+            <select
+              value={value.busy ? "busy" : "free"}
+              onChange={(e) =>
+                // start_at/due_at ride along so the change re-syncs to Google.
+                persist({
+                  busy: e.target.value === "busy",
+                  start_at: value.start_at,
+                  due_at: value.due_at,
+                })
+              }
+              className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+            >
+              <option value="busy">Busy</option>
+              <option value="free">Free</option>
+            </select>
           </Row>
 
           <Row icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} label="Due">

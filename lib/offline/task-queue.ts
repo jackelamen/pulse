@@ -108,6 +108,7 @@ export function makeQueuedTask(input: TaskInsert, localId?: string): Task {
     due_at: input.due_at ?? null,
     duration_minutes: input.duration_minutes ?? null,
     all_day: input.all_day ?? false,
+    busy: input.busy ?? true,
     completed_at: input.completed_at ?? null,
     recurrence_rule: input.recurrence_rule ?? null,
     recurrence_parent_id: input.recurrence_parent_id ?? null,

@@ -100,19 +100,26 @@ export function EventBlock({
       id={`evt-${task.id}`}
       draggable
       onDragStart={handleDragStart}
-      className="group absolute z-10 cursor-grab overflow-hidden rounded-md border border-white/20 px-2 py-1 text-[11px] text-white shadow-sm active:cursor-grabbing"
+      className={`group absolute z-10 cursor-grab overflow-hidden rounded-md px-2 py-1 text-[11px] shadow-sm active:cursor-grabbing ${task.busy ? "border border-white/20 text-white" : ""}`}
       style={{
         top,
         height,
         left: `calc(${widthPct * laneIndex}% + 2px)`,
         width: `calc(${widthPct}% - 4px)`,
-        background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+        // Free (non-blocking) events are tinted and outlined instead of solid.
+        ...(task.busy
+          ? { background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }
+          : {
+              background: `${accent}26`,
+              color: accent,
+              border: `1px dashed ${accent}`,
+            }),
       }}
       title={task.title}
     >
       <div className="truncate font-medium leading-tight">{task.title}</div>
       {height > HOUR_PX * 0.5 && (
-        <div className="truncate text-[10px] text-white/80">
+        <div className={`truncate text-[10px] ${task.busy ? "text-white/80" : "opacity-80"}`}>
           {formatTime(start)} · {duration}m
         </div>
       )}

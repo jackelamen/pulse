@@ -1,7 +1,7 @@
 "use client";
 
 import { useUpdateTask, useMaterializeException } from "@/lib/tasks/queries";
-import { addDays, isSameDay, startOfMonth, startOfWeek, taskAnchor } from "@/lib/date";
+import { addDays, allDayAnchor, isSameDay, startOfMonth, startOfWeek, taskAnchor } from "@/lib/date";
 import { tagColor } from "@/lib/lists/tag-colors";
 import { ymd } from "@/lib/tasks/recurrence";
 import type { VirtualTask } from "@/lib/tasks/recurrence";
@@ -25,6 +25,14 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
     if (!byDay.has(key)) byDay.set(key, []);
     byDay.get(key)!.push(t);
   }
+  // All-day items first, then by time, so the 3-item cap never hides them.
+  for (const list of byDay.values()) {
+    list.sort(
+      (a, b) =>
+        Number(b.all_day) - Number(a.all_day) ||
+        taskAnchor(a)!.localeCompare(taskAnchor(b)!)
+    );
+  }
 
   const update = useUpdateTask();
   const materialize = useMaterializeException();
@@ -35,7 +43,10 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
     if (!raw) return;
     const payload = JSON.parse(raw);
     const target = new Date(day);
-    target.setHours(9, 0, 0, 0); // default 9am drop on month view
+    // All-day items stay all-day when moved; everything else lands at 9am.
+    const allDay = !!payload.allDay;
+    if (allDay) target.setTime(allDayAnchor(day).getTime());
+    else target.setHours(9, 0, 0, 0);
     if (payload.virtual && payload.occursOn) {
       await materialize.mutateAsync({
         templateId: payload.taskId,
@@ -45,7 +56,7 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
     } else {
       await update.mutateAsync({
         id: payload.taskId,
-        patch: { start_at: target.toISOString(), all_day: false },
+        patch: { start_at: target.toISOString(), all_day: allDay },
       });
     }
   }
@@ -94,9 +105,27 @@ export function MonthView({ anchor, instances }: { anchor: Date; instances: Virt
                   return (
                     <div
                       key={t.id}
-                      className="truncate rounded px-1 text-[10px] text-white"
-                      style={{ background: c }}
-                      title={t.title}
+                      draggable={t.all_day}
+                      onDragStart={(e) => {
+                        if (!t.all_day) return;
+                        e.dataTransfer.setData(
+                          "application/x-pulse-event",
+                          JSON.stringify({
+                            taskId: t.virtual ? t.template_id : t.id,
+                            virtual: t.virtual,
+                            occursOn: t.occurs_on,
+                            allDay: true,
+                            kind: "move",
+                          })
+                        );
+                      }}
+                      className={`truncate rounded px-1 text-[10px] ${t.busy ? "text-white" : ""}`}
+                      style={
+                        t.busy
+                          ? { background: c }
+                          : { background: `${c}1f`, color: c, border: `1px solid ${c}` }
+                      }
+                      title={`${t.title}${t.all_day ? " · all day" : ""}${t.busy ? "" : " · free"}`}
                     >
                       {t.title}
                     </div>

@@ -46,6 +46,7 @@ type SyncTask = {
   due_at: string | null;
   duration_minutes: number | null;
   all_day: boolean;
+  busy: boolean | null;
   recurrence_rule: string | null;
   recurrence_parent_id: string | null;
   google_event_id: string | null;
@@ -116,6 +117,9 @@ function toRecurrenceArray(rule: string | null): string[] | undefined {
  */
 function toGoogleEvent(task: SyncTask) {
   const recurrence = toRecurrenceArray(task.recurrence_rule);
+  // busy=false -> "Show me as: Free". Sent explicitly (not omitted) so flipping
+  // back to busy on a PATCH actually clears it on the Google event.
+  const transparency = task.busy === false ? "transparent" : "opaque";
   const anchorIso = task.start_at ?? task.due_at;
 
   // All-day → date-only start/end (end is exclusive next day).
@@ -130,6 +134,7 @@ function toGoogleEvent(task: SyncTask) {
       description: task.notes ?? undefined,
       start: { date: startDate },
       end: { date: endDate },
+      transparency,
       recurrence: recurrence ?? [],
     };
   }
@@ -142,6 +147,7 @@ function toGoogleEvent(task: SyncTask) {
     description: task.notes ?? undefined,
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
+    transparency,
     // Always send an explicit array (empty when not recurring) so a PATCH that
     // removes a repeat actually clears recurrence on the Google event — an
     // omitted field would leave the series intact.
@@ -187,7 +193,7 @@ Deno.serve(async (req) => {
   const { data: rawTasks, error: taskErr } = await supabase
     .from("tasks")
     .select(
-      "id, user_id, title, notes, start_at, due_at, duration_minutes, all_day, recurrence_rule, recurrence_parent_id, google_event_id, google_sync_state",
+      "id, user_id, title, notes, start_at, due_at, duration_minutes, all_day, busy, recurrence_rule, recurrence_parent_id, google_event_id, google_sync_state",
     )
     .in("google_sync_state", ["pending", "delete_pending"])
     .limit(200);
